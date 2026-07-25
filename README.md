@@ -26,18 +26,18 @@ AlgoMind 不是面向零基础用户的算法教程，而是认真学习者的�
 
 ## 快速开始
 
-要求 Python 3.11 或更高版本。
+要求 Python 3.11 或更高版本。项目统一使用根目录中的 `.venv`，
+不要把依赖安装到系统 Python 或其他学习环境。
 
-```bash
-python -m venv .venv
+```powershell
+D:\Anaconda\envs\ai\python.exe -m venv .venv
 ```
 
 Windows：
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python main.py
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
 ```
 
 macOS / Linux：
@@ -47,6 +47,28 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
+
+## 测试
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+## Windows 打包
+
+先安装开发与打包依赖：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+然后执行：
+
+```powershell
+.\scripts\build_windows.ps1
+```
+
+生成的程序位于 `dist\AlgoMind\AlgoMind.exe`，运行时不需要安装 Python。
 
 ## 项目结构
 
@@ -80,4 +102,3 @@ python main.py
 ## License
 
 [MIT](LICENSE)
-
