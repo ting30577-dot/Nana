@@ -3,9 +3,9 @@ title: Nana 研究系统总览
 type: project-index
 project: Nana
 status: active
-release_line: v0.2.0-dev
+release_line: v0.2.0-alpha
 created: 2026-07-27
-updated: 2026-07-27
+updated: 2026-07-28
 tags:
   - Nana
   - research-system
@@ -16,7 +16,7 @@ tags:
 
 > 以算法与方法为中心，借助 AI 将他人的论文、项目和研究成果转化为自身能力的个人研究成长系统。
 
-当前处于 `v0.2.0-dev`（Research Pivot）迁移期，尚未形成可发布版本。`v0.1.0` 是冻结的历史原型；旧 `v0.2` 功能定义从未发布并已经取消，当前开发线只是重新使用尚未发布过的下一个版本号。
+当前处于 `v0.2.0-alpha`，新研究骨架已经成立并进入早期验证。`v0.1.0` 是冻结的历史原型；旧 `v0.2` 功能定义从未发布并已经取消，当前 Alpha 属于重新定义后的研究闭环版本线。
 
 ## 当前共识
 

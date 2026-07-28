@@ -34,7 +34,7 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Nana")
     app.setOrganizationName("Nana")
-    app.setApplicationVersion("0.2.0-dev")
+    app.setApplicationVersion("0.2.0-alpha")
     configure_application(app)
 
     window = MainWindow()

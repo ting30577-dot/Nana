@@ -3,7 +3,7 @@ title: NanaAI：可演进的专业化架构
 type: architecture
 project: Nana
 status: staged
-release_line: v0.2.0-dev
+release_line: v0.2.0-alpha
 created: 2026-07-27
 updated: 2026-07-27
 tags:
