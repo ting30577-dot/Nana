@@ -16,7 +16,7 @@ try {
         "--windowed",
         "--onedir",
         "--name",
-        "AlgoMind"
+        "Nana"
     )
 
     # A venv created from Conda needs several runtime DLLs from its base prefix.
@@ -28,7 +28,8 @@ try {
         "libssl-3-x64.dll",
         "liblzma.dll",
         "libbz2.dll",
-        "libexpat.dll"
+        "libexpat.dll",
+        "sqlite3.dll"
     )
     foreach ($runtimeDll in $runtimeDlls) {
         $runtimePath = Join-Path $condaRuntimeDirectory $runtimeDll
@@ -47,4 +48,4 @@ finally {
     Pop-Location
 }
 
-Write-Host "Build complete: $projectRoot\dist\AlgoMind\AlgoMind.exe"
+Write-Host "Build complete: $projectRoot\dist\Nana\Nana.exe"

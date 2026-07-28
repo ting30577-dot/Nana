@@ -1,4 +1,4 @@
-"""AlgoMind desktop application entry point."""
+"""Nana desktop application entry point."""
 
 from __future__ import annotations
 
@@ -32,8 +32,9 @@ def configure_application(app: QApplication) -> None:
 
 def main() -> int:
     app = QApplication(sys.argv)
-    app.setApplicationName("AlgoMind")
-    app.setOrganizationName("AlgoMind")
+    app.setApplicationName("Nana")
+    app.setOrganizationName("Nana")
+    app.setApplicationVersion("0.2.0-dev")
     configure_application(app)
 
     window = MainWindow()

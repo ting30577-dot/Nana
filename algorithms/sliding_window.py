@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
+from algorithms.animation import AnimationStep, step
+
 
 @dataclass(frozen=True, slots=True)
 class FixedWindowState:
@@ -89,10 +91,16 @@ def variable_window_steps(
     values: Sequence[int],
     target: int,
 ) -> list[VariableWindowState]:
-    """返回“和至少为 target 的最短子数组”的双指针状态列表。"""
+    """返回非负数组中“和至少为 target 的最短子数组”状态列表。
+
+    该滑动窗口依赖窗口和随右边界扩张不减、随左边界收缩不增。
+    如果包含负数，这个单调性不成立，应改用前缀和等其他方法。
+    """
 
     if target <= 0:
         raise ValueError("目标值必须大于 0。")
+    if any(value < 0 for value in values):
+        raise ValueError("可变滑动窗口示例只支持非负数组。")
     if not values:
         return []
 
@@ -154,3 +162,45 @@ def variable_window_steps(
 
     return states
 
+
+def fixed_window_animation_steps(
+    values: Sequence[int],
+    size: int,
+) -> list[AnimationStep]:
+    """将固定窗口计算状态转换为统一动画步骤。"""
+
+    return [
+        step(
+            "sliding_fixed",
+            state.message,
+            state.values,
+            left=state.left,
+            right=state.right,
+            window_sum=state.window_sum,
+            max_sum=state.max_sum,
+            size=size,
+        )
+        for state in fixed_window_steps(values, size)
+    ]
+
+
+def variable_window_animation_steps(
+    values: Sequence[int],
+    target: int,
+) -> list[AnimationStep]:
+    """将可变窗口计算状态转换为统一动画步骤。"""
+
+    return [
+        step(
+            "sliding_variable",
+            state.message,
+            state.values,
+            left=state.left,
+            right=state.right,
+            window_sum=state.window_sum,
+            best_length=state.best_length,
+            target=target,
+            phase=state.phase,
+        )
+        for state in variable_window_steps(values, target)
+    ]

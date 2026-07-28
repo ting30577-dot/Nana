@@ -39,7 +39,10 @@ class VariableWindowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             variable_window_steps([1, 2], 0)
 
+    def test_rejects_negative_values_that_break_monotonicity(self) -> None:
+        with self.assertRaisesRegex(ValueError, "非负数组"):
+            variable_window_steps([1, -1, 5], 5)
+
 
 if __name__ == "__main__":
     unittest.main()
-

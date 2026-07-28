@@ -1,2 +1,1 @@
-"""Algorithm state generators used by AlgoMind visualizers."""
-
+"""Nana 算法可视化使用的纯状态生成器。"""
