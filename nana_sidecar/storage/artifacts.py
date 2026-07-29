@@ -11,7 +11,7 @@ import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Callable
+from typing import BinaryIO, Callable, Mapping
 from uuid import uuid4
 
 
@@ -37,6 +37,10 @@ def _default_volume_id(path: Path) -> str:
     return resolved.drive.casefold() or resolved.anchor.casefold()
 
 
+def _default_flush(handle: BinaryIO) -> None:
+    handle.flush()
+
+
 class ArtifactStore:
     """Write and promote blobs inside one controlled Workspace volume."""
 
@@ -44,6 +48,7 @@ class ArtifactStore:
         self,
         workspace_root: str | Path,
         *,
+        flush: Callable[[BinaryIO], None] = _default_flush,
         fsync: Callable[[int], None] = os.fsync,
         replace: Callable[[Path, Path], None] = os.replace,
         volume_id: Callable[[Path], str] = _default_volume_id,
@@ -51,10 +56,10 @@ class ArtifactStore:
         self.workspace_root = Path(workspace_root).resolve(strict=False)
         self.artifacts_root = self.workspace_root / "artifacts"
         self.staging_root = self.artifacts_root / ".staging"
+        self._flush = flush
         self._fsync = fsync
         self._replace = replace
         self._volume_id = volume_id
-        self._promoted_hashes: set[str] = set()
 
     def blob_path(self, blob_hash: str) -> Path:
         digest = self._digest(blob_hash)
@@ -68,6 +73,12 @@ class ArtifactStore:
         fail_after_bytes: int | None = None,
     ) -> StagedArtifact:
         self._validate_media_type(media_type)
+        if fail_after_bytes is not None and not (
+            0 <= fail_after_bytes < len(content)
+        ):
+            raise ValueError(
+                "fail_after_bytes must be strictly inside the content"
+            )
         self.staging_root.mkdir(parents=True, exist_ok=True)
         partial_path = self.staging_root / f"{uuid4().hex}.partial"
         hasher = hashlib.sha256()
@@ -78,12 +89,12 @@ class ArtifactStore:
                 handle.write(prefix)
                 hasher.update(prefix)
                 size += len(prefix)
-                handle.flush()
+                self._flush(handle)
                 raise OSError("injected partial write")
             handle.write(content)
             hasher.update(content)
             size = len(content)
-            handle.flush()
+            self._flush(handle)
             self._fsync(handle.fileno())
         return StagedArtifact(
             partial_path=partial_path,
@@ -144,7 +155,6 @@ class ArtifactStore:
             if self._volume_id(staged.partial_path) != self._volume_id(final_path):
                 raise OSError("staging and final Artifact paths are on different volumes")
             self._replace(staged.partial_path, final_path)
-        self._promoted_hashes.add(staged.blob_hash)
         return final_path
 
     def open_for_read(self, blob_hash: str, *, state: str) -> BinaryIO:
@@ -162,10 +172,19 @@ class ArtifactStore:
             )
         return final_path.open("rb")
 
-    def list_available_blob_hashes(self) -> tuple[str, ...]:
-        """Return blobs promoted successfully by this store instance."""
+    def list_available_blob_hashes(
+        self,
+        artifact_states: Mapping[str, str] | None = None,
+    ) -> tuple[str, ...]:
+        """Return readable blobs whose canonical state is ``available``."""
 
-        return tuple(sorted(self._promoted_hashes))
+        available: list[str] = []
+        for blob_hash, state in (artifact_states or {}).items():
+            if state != "available":
+                continue
+            with self.open_for_read(blob_hash, state=state):
+                available.append(blob_hash)
+        return tuple(sorted(available))
 
     def _verify_final(self, final_path: Path, staged: StagedArtifact) -> None:
         actual_hash, actual_size = self._measure(final_path)
