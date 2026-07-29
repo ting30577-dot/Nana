@@ -232,6 +232,13 @@ class ArtifactStore:
             )
         return final_path.open("rb")
 
+    def verify_final(self, staged: StagedArtifact) -> Path:
+        """Verify that the final content-addressed blob matches a stage."""
+
+        final_path = self.blob_path(staged.blob_hash)
+        self._verify_final(final_path, staged)
+        return final_path
+
     def list_available_blob_hashes(
         self,
         artifact_states: Mapping[str, str] | None = None,
