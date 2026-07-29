@@ -8,7 +8,9 @@ Canonical visibility remains controlled by the caller-provided Artifact state.
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, Callable, Mapping
@@ -26,6 +28,7 @@ class ArtifactNotAvailableError(FileNotFoundError):
 @dataclass(frozen=True, slots=True)
 class StagedArtifact:
     partial_path: Path
+    temp_ref: str
     blob_hash: str
     size: int
     media_type: str
@@ -39,6 +42,12 @@ def _default_volume_id(path: Path) -> str:
 
 def _default_flush(handle: BinaryIO) -> None:
     handle.flush()
+
+
+_MEDIA_TYPE_PATTERN = re.compile(
+    r"^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$"
+)
+_MIME_TYPES = mimetypes.MimeTypes()
 
 
 class ArtifactStore:
@@ -72,7 +81,7 @@ class ArtifactStore:
         *,
         fail_after_bytes: int | None = None,
     ) -> StagedArtifact:
-        self._validate_media_type(media_type)
+        normalized_media_type = self._normalize_media_type(media_type)
         if fail_after_bytes is not None and not (
             0 <= fail_after_bytes < len(content)
         ):
@@ -81,65 +90,103 @@ class ArtifactStore:
             )
         self.staging_root.mkdir(parents=True, exist_ok=True)
         partial_path = self.staging_root / f"{uuid4().hex}.partial"
-        hasher = hashlib.sha256()
-        size = 0
         with partial_path.open("xb") as handle:
             if fail_after_bytes is not None:
                 prefix = content[:fail_after_bytes]
                 handle.write(prefix)
-                hasher.update(prefix)
-                size += len(prefix)
                 self._flush(handle)
                 raise OSError("injected partial write")
             handle.write(content)
-            hasher.update(content)
-            size = len(content)
             self._flush(handle)
             self._fsync(handle.fileno())
+        blob_hash, size = self._measure(partial_path)
         return StagedArtifact(
             partial_path=partial_path,
-            blob_hash=f"sha256:{hasher.hexdigest()}",
+            temp_ref=self._temp_ref(partial_path),
+            blob_hash=blob_hash,
             size=size,
-            media_type=media_type,
+            media_type=normalized_media_type,
         )
 
     def stage_file(self, source: str | Path, media_type: str) -> StagedArtifact:
         source_path = Path(source).resolve(strict=True)
-        staged = self.stage_bytes(source_path.read_bytes(), media_type)
+        normalized_media_type = self._normalize_media_type(media_type)
+        detected_media_type = self._detect_file_media_type(source_path)
+        if detected_media_type != normalized_media_type:
+            raise ArtifactIntegrityError(
+                "media type mismatch: "
+                f"expected {normalized_media_type}, detected {detected_media_type}"
+            )
         cross_volume = self._volume_id(source_path) != self._volume_id(
             self.staging_root
         )
+        self.staging_root.mkdir(parents=True, exist_ok=True)
+        partial_path = self.staging_root / f"{uuid4().hex}.partial"
+        with source_path.open("rb") as source_handle:
+            with partial_path.open("xb") as partial_handle:
+                while chunk := source_handle.read(1024 * 1024):
+                    partial_handle.write(chunk)
+                self._flush(partial_handle)
+                self._fsync(partial_handle.fileno())
+        blob_hash, size = self._measure(partial_path)
         return StagedArtifact(
-            partial_path=staged.partial_path,
-            blob_hash=staged.blob_hash,
-            size=staged.size,
-            media_type=staged.media_type,
+            partial_path=partial_path,
+            temp_ref=self._temp_ref(partial_path),
+            blob_hash=blob_hash,
+            size=size,
+            media_type=detected_media_type,
             was_cross_volume_copy=cross_volume,
         )
 
     def verify_staged(
         self,
-        partial_path: str | Path,
+        staged: StagedArtifact,
         *,
         expected_hash: str,
         expected_size: int,
+        expected_media_type: str,
     ) -> None:
-        actual_hash, actual_size = self._measure(Path(partial_path))
-        if actual_hash != expected_hash:
+        self._require_workspace_partial(staged.partial_path)
+        normalized_media_type = self._normalize_media_type(expected_media_type)
+        self._digest(expected_hash)
+        actual_temp_ref = self._temp_ref(staged.partial_path)
+        if staged.temp_ref != actual_temp_ref:
             raise ArtifactIntegrityError(
-                f"hash mismatch: expected {expected_hash}, got {actual_hash}"
+                f"temp_ref mismatch: expected {actual_temp_ref}, "
+                f"got {staged.temp_ref}"
             )
-        if actual_size != expected_size:
+        if staged.blob_hash != expected_hash:
             raise ArtifactIntegrityError(
-                f"size mismatch: expected {expected_size}, got {actual_size}"
+                f"hash mismatch: expected {expected_hash}, "
+                f"got descriptor {staged.blob_hash}"
+            )
+        if staged.size != expected_size:
+            raise ArtifactIntegrityError(
+                f"size mismatch: expected {expected_size}, "
+                f"got descriptor {staged.size}"
+            )
+        if staged.media_type != normalized_media_type:
+            raise ArtifactIntegrityError(
+                "media type mismatch: "
+                f"expected {normalized_media_type}, got {staged.media_type}"
+            )
+        actual_hash, actual_size = self._measure(staged.partial_path)
+        if actual_hash != staged.blob_hash:
+            raise ArtifactIntegrityError(
+                f"hash mismatch: expected {staged.blob_hash}, got {actual_hash}"
+            )
+        if actual_size != staged.size:
+            raise ArtifactIntegrityError(
+                f"size mismatch: expected {staged.size}, got {actual_size}"
             )
 
     def promote(self, staged: StagedArtifact) -> Path:
         self._require_workspace_partial(staged.partial_path)
         self.verify_staged(
-            staged.partial_path,
+            staged,
             expected_hash=staged.blob_hash,
             expected_size=staged.size,
+            expected_media_type=staged.media_type,
         )
         final_path = self.blob_path(staged.blob_hash)
         final_path.parent.mkdir(parents=True, exist_ok=True)
@@ -203,6 +250,9 @@ class ArtifactStore:
         if resolved.parent != staging or resolved.suffix != ".partial":
             raise ValueError("promotion source must be a Workspace staging .partial")
 
+    def _temp_ref(self, partial_path: Path) -> str:
+        return partial_path.relative_to(self.workspace_root).as_posix()
+
     @staticmethod
     def _measure(path: Path) -> tuple[str, int]:
         hasher = hashlib.sha256()
@@ -224,6 +274,24 @@ class ArtifactStore:
         return digest
 
     @staticmethod
-    def _validate_media_type(media_type: str) -> None:
-        if not media_type.strip():
-            raise ValueError("media_type must not be empty")
+    def _normalize_media_type(media_type: str) -> str:
+        normalized = media_type.casefold()
+        if (
+            len(media_type) > 160
+            or normalized != media_type.strip().casefold()
+            or _MEDIA_TYPE_PATTERN.fullmatch(media_type) is None
+        ):
+            raise ValueError(
+                "media_type must be a type/subtype token of at most 160 characters"
+            )
+        return normalized
+
+    @classmethod
+    def _detect_file_media_type(cls, source_path: Path) -> str:
+        detected, encoding = _MIME_TYPES.guess_type(
+            source_path.name,
+            strict=False,
+        )
+        if encoding is not None:
+            return "application/octet-stream"
+        return cls._normalize_media_type(detected or "application/octet-stream")

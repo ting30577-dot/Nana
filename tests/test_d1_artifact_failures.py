@@ -85,15 +85,17 @@ class D1ArtifactFailureTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ArtifactIntegrityError, "hash mismatch"):
             store.verify_staged(
-                staged.partial_path,
+                staged,
                 expected_hash="sha256:" + "0" * 64,
                 expected_size=staged.size,
+                expected_media_type=staged.media_type,
             )
         with self.assertRaisesRegex(ArtifactIntegrityError, "size mismatch"):
             store.verify_staged(
-                staged.partial_path,
+                staged,
                 expected_hash=staged.blob_hash,
                 expected_size=staged.size + 1,
+                expected_media_type=staged.media_type,
             )
 
         self.assertEqual(store.list_available_blob_hashes(), ())
