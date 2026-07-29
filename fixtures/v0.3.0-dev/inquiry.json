@@ -1,0 +1,44 @@
+{
+  "fixture_version": 1,
+  "milestone": "v0.3.0-dev",
+  "title": "Variable-length sliding-window boundary",
+  "question": "Why does the variable-length sliding-window technique depend on non-negative input, and what monotonicity is lost when negative values are admitted?",
+  "input_scope": {
+    "values": "finite sequences of integers",
+    "target": "positive integer",
+    "dev_execution_scope": "existing locked non-negative unit test only"
+  },
+  "acceptance": [
+    "The selected public Resource and line locator serialize and resolve.",
+    "The editable Plan freezes the registered test, budget, and approval point.",
+    "The Run records code version, environment summary, output, and exit state.",
+    "A Finding draft links to Evidence or the terminal Run.",
+    "A non-sensitive draft report is exported outside the Workspace only after a T3 Approval and produces an ActionReceipt."
+  ],
+  "resource": {
+    "logical_ref": "fixtures/v0.3.0-dev/resources/variable-window-monotonicity.md",
+    "media_type": "text/markdown",
+    "data_class": "public",
+    "license": "CC0-1.0",
+    "content_hash": "sha256:437fbf2320eacc59e01adc16503f5297383551b77c2457b1a054bcf4b7e5fe4a",
+    "locator": {
+      "type": "local_file_lines",
+      "start_line": 6,
+      "end_line": 12,
+      "quote_hash": "sha256:b2a8bd097c6ea04f9439745767a77df876fc1e860aa3ad71ea158f6f93c8cfe5"
+    }
+  },
+  "registered_test": {
+    "capability": "python.unittest.locked",
+    "test_id": "tests.test_sliding_window.VariableWindowTests.test_finds_shortest_matching_window",
+    "network": "denied",
+    "write_scope": "project_scratch"
+  },
+  "scope_ceiling": {
+    "counterexample_search": "v0.3.0-alpha.1",
+    "three_implementations": "v0.3.0-alpha.1",
+    "property_tests": "v0.3.0-alpha.1",
+    "benchmark": "v0.3.0-alpha.1",
+    "final_decision": "v0.3.0-alpha.1"
+  }
+}

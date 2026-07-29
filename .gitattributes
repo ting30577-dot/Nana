@@ -1,0 +1,16 @@
+/.gitignore text eol=lf
+/requirements.txt text eol=lf
+/algorithms/sliding_window.py text eol=lf
+/docs/adr/** text eol=lf
+/docs/baselines/v0.2.0-alpha/** text eol=lf
+/docs/evidence/v0.3.0-dev-d0-* text eol=lf
+/fixtures/v0.3.0-dev/** text eol=lf
+/nana_sidecar/** text eol=lf
+/nana_web/** text eol=lf
+/docs/baselines/v0.2.0-alpha/*.png binary
+/scripts/export_vnext_contracts.py text eol=lf
+/tests/test_d0_d1_handoff.py text eol=lf
+/tests/test_sliding_window.py text eol=lf
+/tests/test_vnext_*.py text eol=lf
+/obsidian_export/Nana_研究系统_vNext/11_* text eol=lf
+/obsidian_export/Nana_研究系统_vNext/12_* text eol=lf

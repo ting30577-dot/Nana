@@ -1,0 +1,14 @@
+{
+  "name": "nana-web",
+  "version": "0.3.0-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:client": "openapi-typescript openapi.json -o src/generated/api.ts",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0",
+    "typescript": "^5.7.0"
+  }
+}
