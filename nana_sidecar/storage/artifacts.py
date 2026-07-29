@@ -37,11 +37,18 @@ class StagedArtifact:
 
 def _default_volume_id(path: Path) -> str:
     resolved = path.resolve(strict=False)
-    return resolved.drive.casefold() or resolved.anchor.casefold()
+    probe = resolved
+    while not probe.exists() and probe.parent != probe:
+        probe = probe.parent
+    return str(probe.stat().st_dev)
 
 
 def _default_flush(handle: BinaryIO) -> None:
     handle.flush()
+
+
+def _default_write(handle: BinaryIO, content: memoryview) -> int:
+    return handle.write(content)
 
 
 _MEDIA_TYPE_PATTERN = re.compile(
@@ -57,6 +64,7 @@ class ArtifactStore:
         self,
         workspace_root: str | Path,
         *,
+        write: Callable[[BinaryIO, memoryview], int] = _default_write,
         flush: Callable[[BinaryIO], None] = _default_flush,
         fsync: Callable[[int], None] = os.fsync,
         replace: Callable[[Path, Path], None] = os.replace,
@@ -65,6 +73,7 @@ class ArtifactStore:
         self.workspace_root = Path(workspace_root).resolve(strict=False)
         self.artifacts_root = self.workspace_root / "artifacts"
         self.staging_root = self.artifacts_root / ".staging"
+        self._write = write
         self._flush = flush
         self._fsync = fsync
         self._replace = replace
@@ -93,10 +102,10 @@ class ArtifactStore:
         with partial_path.open("xb") as handle:
             if fail_after_bytes is not None:
                 prefix = content[:fail_after_bytes]
-                handle.write(prefix)
+                self._write_all(handle, prefix)
                 self._flush(handle)
                 raise OSError("injected partial write")
-            handle.write(content)
+            self._write_all(handle, content)
             self._flush(handle)
             self._fsync(handle.fileno())
         blob_hash, size = self._measure(partial_path)
@@ -125,7 +134,7 @@ class ArtifactStore:
         with source_path.open("rb") as source_handle:
             with partial_path.open("xb") as partial_handle:
                 while chunk := source_handle.read(1024 * 1024):
-                    partial_handle.write(chunk)
+                    self._write_all(partial_handle, chunk)
                 self._flush(partial_handle)
                 self._fsync(partial_handle.fileno())
         blob_hash, size = self._measure(partial_path)
@@ -190,7 +199,7 @@ class ArtifactStore:
         )
         final_path = self.blob_path(staged.blob_hash)
         final_path.parent.mkdir(parents=True, exist_ok=True)
-        if final_path.exists():
+        if final_path.exists() or final_path.is_symlink():
             try:
                 self._verify_final(final_path, staged)
             except ArtifactIntegrityError as exc:
@@ -210,6 +219,10 @@ class ArtifactStore:
                 f"Artifact in state {state!r} is not available"
             )
         final_path = self.blob_path(blob_hash)
+        if final_path.is_symlink():
+            raise ArtifactIntegrityError(
+                f"available Artifact blob is non-regular: {blob_hash}"
+            )
         if not final_path.is_file():
             raise ArtifactNotAvailableError(f"available Artifact blob is missing: {blob_hash}")
         actual_hash, _ = self._measure(final_path)
@@ -234,6 +247,10 @@ class ArtifactStore:
         return tuple(sorted(available))
 
     def _verify_final(self, final_path: Path, staged: StagedArtifact) -> None:
+        if final_path.is_symlink() or not final_path.is_file():
+            raise ArtifactIntegrityError(
+                f"non-regular final blob: {final_path}"
+            )
         actual_hash, actual_size = self._measure(final_path)
         if actual_hash != staged.blob_hash:
             raise ArtifactIntegrityError(
@@ -252,6 +269,16 @@ class ArtifactStore:
 
     def _temp_ref(self, partial_path: Path) -> str:
         return partial_path.relative_to(self.workspace_root).as_posix()
+
+    def _write_all(self, handle: BinaryIO, content: bytes) -> None:
+        remaining = memoryview(content)
+        while remaining:
+            written = self._write(handle, remaining)
+            if written is None or written <= 0:
+                raise OSError("Artifact partial write made no progress")
+            if written > len(remaining):
+                raise OSError("Artifact partial write reported an invalid byte count")
+            remaining = remaining[written:]
 
     @staticmethod
     def _measure(path: Path) -> tuple[str, int]:

@@ -15,6 +15,7 @@ from nana_sidecar.contracts.domain import ArtifactStagedPayload
 from nana_sidecar.storage.artifacts import (
     ArtifactIntegrityError,
     ArtifactStore,
+    _default_volume_id,
 )
 
 
@@ -69,6 +70,30 @@ class D1ArtifactStageTests(unittest.TestCase):
             staged.blob_hash,
             "sha256:" + hashlib.sha256(b"measure after durability").hexdigest(),
         )
+
+    def test_short_writes_are_retried_until_content_is_complete(self) -> None:
+        def short_write(handle: object, content: memoryview) -> int:
+            return handle.write(content[:3])  # type: ignore[attr-defined]
+
+        store = ArtifactStore(self.workspace, write=short_write)
+        payload = b"short writes must not truncate the staged artifact"
+
+        staged = store.stage_bytes(payload, "text/plain")
+
+        self.assertEqual(staged.partial_path.read_bytes(), payload)
+        self.assertEqual(staged.size, len(payload))
+
+    def test_zero_progress_write_fails_and_remains_invisible(self) -> None:
+        def zero_write(handle: object, content: memoryview) -> int:
+            return 0
+
+        store = ArtifactStore(self.workspace, write=zero_write)
+
+        with self.assertRaisesRegex(OSError, "made no progress"):
+            store.stage_bytes(b"cannot disappear", "text/plain")
+
+        self.assertEqual(len(list(store.staging_root.glob("*.partial"))), 1)
+        self.assertEqual(store.list_available_blob_hashes(), ())
 
     def test_stage_real_fixture_has_complete_portable_metadata(self) -> None:
         store = ArtifactStore(self.workspace)
@@ -185,6 +210,45 @@ class D1ArtifactStageTests(unittest.TestCase):
         self.assertEqual(len(replacements), 1)
         self.assertFalse(second.partial_path.exists())
         self.assertEqual(final_path.read_bytes(), b"deduplicated")
+
+    def test_existing_non_regular_final_blob_is_rejected(self) -> None:
+        store = ArtifactStore(self.workspace)
+        staged = store.stage_bytes(b"regular files only", "text/plain")
+        final_path = store.blob_path(staged.blob_hash)
+        final_path.mkdir(parents=True)
+
+        with self.assertRaisesRegex(
+            ArtifactIntegrityError,
+            "non-regular final blob",
+        ):
+            store.promote(staged)
+
+        self.assertTrue(staged.partial_path.exists())
+
+    def test_existing_final_symlink_is_rejected_before_reuse(self) -> None:
+        store = ArtifactStore(self.workspace)
+        staged = store.stage_bytes(b"do not follow links", "text/plain")
+        final_path = store.blob_path(staged.blob_hash)
+        final_path.parent.mkdir(parents=True)
+        final_path.write_bytes(b"do not follow links")
+
+        with patch.object(Path, "is_symlink", return_value=True):
+            with self.assertRaisesRegex(
+                ArtifactIntegrityError,
+                "non-regular final blob",
+            ):
+                store.promote(staged)
+
+        self.assertTrue(staged.partial_path.exists())
+
+    def test_default_volume_identity_uses_device_not_drive_letter(self) -> None:
+        store = ArtifactStore(self.workspace)
+        staged = store.stage_bytes(b"volume identity", "text/plain")
+
+        self.assertEqual(
+            _default_volume_id(staged.partial_path),
+            str(os.stat(staged.partial_path).st_dev),
+        )
 
 
 if __name__ == "__main__":
