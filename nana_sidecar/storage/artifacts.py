@@ -13,6 +13,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from pathlib import PurePosixPath
 from typing import BinaryIO, Callable, Mapping
 from uuid import uuid4
 
@@ -73,6 +74,10 @@ class ArtifactStore:
         self.workspace_root = Path(workspace_root).resolve(strict=False)
         self.artifacts_root = self.workspace_root / "artifacts"
         self.staging_root = self.artifacts_root / ".staging"
+        self.quarantine_root = self.artifacts_root / ".quarantine"
+        self.partial_quarantine_root = self.quarantine_root / "partials"
+        self.orphan_quarantine_root = self.quarantine_root / "orphans"
+        self.corrupt_quarantine_root = self.quarantine_root / "corrupt"
         self._write = write
         self._flush = flush
         self._fsync = fsync
@@ -239,6 +244,47 @@ class ArtifactStore:
         self._verify_final(final_path, staged)
         return final_path
 
+    def partial_path_from_temp_ref(self, temp_ref: str) -> Path:
+        """Resolve a canonical logical temp ref without permitting path escape."""
+
+        logical = PurePosixPath(temp_ref)
+        if logical.is_absolute() or ".." in logical.parts:
+            raise ValueError("temp_ref must be a relative Workspace staging path")
+        partial_path = Path(
+            os.path.abspath(self.workspace_root.joinpath(*logical.parts))
+        )
+        staging = Path(os.path.abspath(self.staging_root))
+        if partial_path.parent != staging or partial_path.suffix != ".partial":
+            raise ValueError("temp_ref must name a Workspace staging .partial")
+        return partial_path
+
+    def quarantine_partial(self, partial_path: Path) -> Path:
+        """Atomically move an unreferenced Workspace partial to quarantine."""
+
+        self._require_workspace_partial_entry(partial_path)
+        return self._move_to_quarantine(
+            partial_path,
+            self.partial_quarantine_root,
+        )
+
+    def quarantine_orphan_blob(
+        self,
+        blob_hash: str,
+        *,
+        corrupt: bool = False,
+    ) -> Path:
+        """Atomically isolate an unreferenced or corrupt final hash blob."""
+
+        source = self.blob_path(blob_hash)
+        if not source.exists() and not source.is_symlink():
+            raise FileNotFoundError(source)
+        target_root = (
+            self.corrupt_quarantine_root
+            if corrupt
+            else self.orphan_quarantine_root
+        )
+        return self._move_to_quarantine(source, target_root)
+
     def list_available_blob_hashes(
         self,
         artifact_states: Mapping[str, str] | None = None,
@@ -269,13 +315,41 @@ class ArtifactStore:
             )
 
     def _require_workspace_partial(self, partial_path: Path) -> None:
+        if os.path.islink(partial_path) or not partial_path.is_file():
+            raise ValueError(
+                "promotion source must be a regular Workspace staging .partial"
+            )
         resolved = partial_path.resolve(strict=True)
         staging = self.staging_root.resolve(strict=False)
         if resolved.parent != staging or resolved.suffix != ".partial":
             raise ValueError("promotion source must be a Workspace staging .partial")
 
+    def _require_workspace_partial_entry(self, partial_path: Path) -> None:
+        normalized = Path(os.path.abspath(partial_path))
+        staging = Path(os.path.abspath(self.staging_root))
+        if normalized.parent != staging or normalized.suffix != ".partial":
+            raise ValueError(
+                "quarantine source must be a Workspace staging .partial"
+            )
+        if not normalized.exists() and not normalized.is_symlink():
+            raise FileNotFoundError(normalized)
+
     def _temp_ref(self, partial_path: Path) -> str:
         return partial_path.relative_to(self.workspace_root).as_posix()
+
+    def _move_to_quarantine(
+        self,
+        source: Path,
+        target_root: Path,
+    ) -> Path:
+        target_root.mkdir(parents=True, exist_ok=True)
+        target = target_root / source.name
+        while target.exists() or target.is_symlink():
+            target = target_root / f"{source.stem}-{uuid4().hex}{source.suffix}"
+        if self._volume_id(source.parent) != self._volume_id(target_root):
+            raise OSError("Artifact source and quarantine are on different volumes")
+        self._replace(source, target)
+        return target
 
     def _write_all(self, handle: BinaryIO, content: bytes) -> None:
         remaining = memoryview(content)
