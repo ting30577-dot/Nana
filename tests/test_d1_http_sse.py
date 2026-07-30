@@ -452,6 +452,62 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
         finally:
             await accepted.close()
 
+    async def test_future_routes_default_to_session_and_slash_cannot_bypass(
+        self,
+    ) -> None:
+        @self.app.post("/api/v1/future-mutation")
+        async def future_mutation() -> dict[str, bool]:
+            return {"accepted": True}
+
+        session_headers = {
+            "Origin": ORIGIN,
+            "Authorization": f"Bearer {TOKEN}",
+        }
+        async with AsyncClient(
+            transport=ASGITransport(app=self.app),
+            base_url=ORIGIN,
+        ) as client:
+            health = await client.get("/healthz")
+            handshake = await client.get("/api/v1/handshake")
+            openapi = await client.get("/openapi.json")
+            anonymous_mutation = await client.post(
+                "/api/v1/future-mutation",
+            )
+            anonymous_mutation_slash = await client.post(
+                "/api/v1/future-mutation/",
+                follow_redirects=False,
+            )
+            anonymous_contracts_slash = await client.get(
+                "/api/v1/contracts/",
+                follow_redirects=False,
+            )
+            anonymous_unknown = await client.get("/api/v1/future-unknown")
+            authenticated_mutation = await client.post(
+                "/api/v1/future-mutation",
+                headers=session_headers,
+            )
+            authenticated_contracts_slash = await client.get(
+                "/api/v1/contracts/",
+                headers=session_headers,
+                follow_redirects=True,
+            )
+            authenticated_unknown = await client.get(
+                "/api/v1/future-unknown",
+                headers=session_headers,
+            )
+
+        self.assertEqual(health.status_code, 200)
+        self.assertEqual(handshake.status_code, 200)
+        self.assertEqual(openapi.status_code, 200)
+        self.assertEqual(anonymous_mutation.status_code, 401)
+        self.assertEqual(anonymous_mutation_slash.status_code, 401)
+        self.assertEqual(anonymous_contracts_slash.status_code, 401)
+        self.assertEqual(anonymous_unknown.status_code, 401)
+        self.assertEqual(authenticated_mutation.status_code, 200)
+        self.assertEqual(authenticated_mutation.json(), {"accepted": True})
+        self.assertEqual(authenticated_contracts_slash.status_code, 200)
+        self.assertEqual(authenticated_unknown.status_code, 404)
+
     async def test_ambiguous_security_and_cursor_headers_are_rejected(
         self,
     ) -> None:

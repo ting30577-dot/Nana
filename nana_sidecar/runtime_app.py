@@ -14,9 +14,19 @@ from nana_sidecar.sse import (
     parse_last_event_id,
 )
 
+_PUBLIC_HTTP_PATHS = frozenset(
+    {
+        "/healthz",
+        "/api/v1/handshake",
+        "/openapi.json",
+        "/api/docs",
+        "/docs/oauth2-redirect",
+    }
+)
+
 
 class _LocalSessionMiddleware:
-    """Authenticate the session-protected API and SSE with one policy."""
+    """Authenticate every HTTP route except the exact public bootstrap paths."""
 
     def __init__(
         self,
@@ -35,7 +45,7 @@ class _LocalSessionMiddleware:
     ) -> None:
         if (
             scope["type"] == "http"
-            and scope["path"] in {"/api/v1/contracts", "/api/v1/events"}
+            and scope["path"] not in _PUBLIC_HTTP_PATHS
         ):
             request = Request(scope)
             try:
