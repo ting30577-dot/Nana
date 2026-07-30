@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import tempfile
 import unittest
@@ -679,6 +680,20 @@ class D1ArtifactReconciliationGateTests(unittest.TestCase):
             (),
         )
         connection.close()
+
+    def test_reconciliation_grace_must_be_finite_non_boolean_number(self) -> None:
+        _, _, connection, store = self._runtime("invalid-grace", 0)
+        try:
+            for invalid in (math.nan, math.inf, -math.inf, True):
+                with self.subTest(invalid=invalid):
+                    with self.assertRaisesRegex(ValueError, "grace_seconds"):
+                        ArtifactReconciler(
+                            connection,
+                            store,
+                            grace_seconds=invalid,
+                        )
+        finally:
+            connection.close()
 
     def test_orphan_final_branch_fault_injection_20_times(self) -> None:
         for iteration in range(FAULT_RUNS):

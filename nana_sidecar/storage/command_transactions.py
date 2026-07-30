@@ -321,6 +321,49 @@ class CommandTransactionService:
                 "bound to its domain revision, Event, and outbox row"
             )
 
+    def _validate_stored_rejection(
+        self,
+        command: RevisePlan,
+        stored: StructuredError,
+    ) -> None:
+        actual_revision = stored.details.get("actual_revision")
+        if (
+            isinstance(actual_revision, bool)
+            or (
+                actual_revision is not None
+                and (
+                    not isinstance(actual_revision, int)
+                    or actual_revision < 1
+                )
+            )
+        ):
+            raise RuntimeError(
+                f"stored Command rejection for {command.command_id} is not "
+                "bound to the rejected command"
+            )
+        expected = self._revision_conflict(command, actual_revision)
+        revision_exists = (
+            actual_revision is None
+            or self.connection.execute(
+                """
+                SELECT 1
+                FROM plans
+                WHERE id = ? AND revision = ?
+                """,
+                (str(command.plan_id), actual_revision),
+            ).fetchone()
+            is not None
+        )
+        if (
+            stored.model_dump(mode="json")
+            != expected.model_dump(mode="json")
+            or not revision_exists
+        ):
+            raise RuntimeError(
+                f"stored Command rejection for {command.command_id} is not "
+                "bound to the rejected command"
+            )
+
     def _replay(
         self,
         row: sqlite3.Row,
@@ -356,6 +399,7 @@ class CommandTransactionService:
             error = StructuredError.model_validate(
                 json.loads(str(row["error_json"]))
             )
+            self._validate_stored_rejection(command, error)
             raise CommandExecutionError(error, replayed=True)
         raise RuntimeError(
             f"command_log row for {command.command_id} is incomplete"

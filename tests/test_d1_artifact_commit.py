@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 from nana_sidecar.storage import connect_database, initialize_database
@@ -371,6 +373,45 @@ class D1ArtifactCommitTests(unittest.TestCase):
         )
         self.assertEqual(result.final_path, self.store.blob_path(staged.blob_hash))
         self.assertEqual(self.reader.read_bytes(artifact_id), content)
+
+    def test_reader_rehashes_the_exact_bytes_it_returns(self) -> None:
+        artifact_id = str(uuid4())
+        staged = self._stage(b"AAAA")
+        self._service().commit(artifact_id, staged)
+
+        with patch.object(
+            self.store,
+            "open_for_read",
+            return_value=io.BytesIO(b"BBBB"),
+        ):
+            with self.assertRaisesRegex(
+                ArtifactIntegrityError,
+                "hash mismatch",
+            ):
+                self.reader.read_bytes(artifact_id)
+
+    def test_store_returns_the_same_handle_it_verified(self) -> None:
+        artifact_id = str(uuid4())
+        content = b"same verified handle"
+        staged = self._stage(content)
+        self._service().commit(artifact_id, staged)
+        original_measure = self.store._measure
+
+        def measure_then_replace(path: Path) -> tuple[str, int]:
+            measured = original_measure(path)
+            path.write_bytes(b"x" * len(content))
+            return measured
+
+        with patch.object(
+            self.store,
+            "_measure",
+            side_effect=measure_then_replace,
+        ):
+            with self.store.open_for_read(
+                staged.blob_hash,
+                state="available",
+            ) as handle:
+                self.assertEqual(handle.read(), content)
 
     def test_publish_requires_matching_canonical_staged_row(self) -> None:
         artifact_id = str(uuid4())

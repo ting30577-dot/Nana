@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from contextlib import contextmanager
@@ -310,5 +311,10 @@ class ArtifactReader:
         if len(content) != int(row["size"]):
             raise ArtifactIntegrityError(
                 f"available Artifact size mismatch: {artifact_id}"
+            )
+        actual_hash = f"sha256:{hashlib.sha256(content).hexdigest()}"
+        if actual_hash != str(row["blob_hash"]):
+            raise ArtifactIntegrityError(
+                f"available Artifact hash mismatch: {artifact_id}"
             )
         return content

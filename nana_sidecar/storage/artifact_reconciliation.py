@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -56,8 +57,15 @@ class ArtifactReconciler:
         grace_seconds: float = 300,
         checkpoint: Callable[[str], None] | None = None,
     ) -> None:
-        if grace_seconds < 0:
-            raise ValueError("grace_seconds must be non-negative")
+        if (
+            isinstance(grace_seconds, bool)
+            or not isinstance(grace_seconds, (int, float))
+            or not math.isfinite(grace_seconds)
+            or grace_seconds < 0
+        ):
+            raise ValueError(
+                "grace_seconds must be a finite non-negative number"
+            )
         self.connection = connection
         self.store = store
         self._now = now
@@ -72,6 +80,7 @@ class ArtifactReconciler:
             raise RuntimeError(
                 "Artifact reconciliation requires an idle SQLite connection"
             )
+        self.store.validate_layout()
         rows = tuple(
             self.connection.execute(
                 """

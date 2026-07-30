@@ -11,6 +11,7 @@ import hashlib
 import mimetypes
 import os
 import re
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from pathlib import PurePosixPath
@@ -102,7 +103,9 @@ class ArtifactStore:
             raise ValueError(
                 "fail_after_bytes must be strictly inside the content"
             )
+        self.validate_layout()
         self.staging_root.mkdir(parents=True, exist_ok=True)
+        self._require_controlled_path(self.staging_root)
         partial_path = self.staging_root / f"{uuid4().hex}.partial"
         with partial_path.open("xb") as handle:
             if fail_after_bytes is not None:
@@ -131,10 +134,12 @@ class ArtifactStore:
                 "media type mismatch: "
                 f"expected {normalized_media_type}, detected {detected_media_type}"
             )
+        self.validate_layout()
         cross_volume = self._volume_id(source_path) != self._volume_id(
             self.staging_root
         )
         self.staging_root.mkdir(parents=True, exist_ok=True)
+        self._require_controlled_path(self.staging_root)
         partial_path = self.staging_root / f"{uuid4().hex}.partial"
         with source_path.open("rb") as source_handle:
             with partial_path.open("xb") as partial_handle:
@@ -203,7 +208,9 @@ class ArtifactStore:
             expected_media_type=staged.media_type,
         )
         final_path = self.blob_path(staged.blob_hash)
+        self._require_controlled_path(final_path.parent)
         final_path.parent.mkdir(parents=True, exist_ok=True)
+        self._require_controlled_path(final_path.parent)
         if final_path.exists() or final_path.is_symlink():
             try:
                 self._verify_final(final_path, staged)
@@ -224,18 +231,48 @@ class ArtifactStore:
                 f"Artifact in state {state!r} is not available"
             )
         final_path = self.blob_path(blob_hash)
-        if final_path.is_symlink():
+        self._require_controlled_path(final_path)
+        try:
+            path_stat = final_path.lstat()
+        except FileNotFoundError as exc:
+            raise ArtifactNotAvailableError(
+                f"available Artifact blob is missing: {blob_hash}"
+            ) from exc
+        if self._stat_is_reparse(path_stat) or not stat.S_ISREG(
+            path_stat.st_mode
+        ):
             raise ArtifactIntegrityError(
                 f"available Artifact blob is non-regular: {blob_hash}"
             )
-        if not final_path.is_file():
-            raise ArtifactNotAvailableError(f"available Artifact blob is missing: {blob_hash}")
-        actual_hash, _ = self._measure(final_path)
-        if actual_hash != blob_hash:
-            raise ArtifactIntegrityError(
-                f"available Artifact blob hash mismatch: {blob_hash}"
-            )
-        return final_path.open("rb")
+        try:
+            handle = final_path.open("rb")
+        except FileNotFoundError as exc:
+            raise ArtifactNotAvailableError(
+                f"available Artifact blob is missing: {blob_hash}"
+            ) from exc
+        try:
+            opened_stat = os.fstat(handle.fileno())
+            current_stat = final_path.lstat()
+            if (
+                self._stat_is_reparse(current_stat)
+                or not stat.S_ISREG(opened_stat.st_mode)
+                or not stat.S_ISREG(current_stat.st_mode)
+                or self._file_identity(opened_stat)
+                != self._file_identity(current_stat)
+            ):
+                raise ArtifactIntegrityError(
+                    f"available Artifact blob changed while opening: {blob_hash}"
+                )
+            actual_hash, _ = self._measure_handle(handle)
+            if actual_hash != blob_hash:
+                raise ArtifactIntegrityError(
+                    f"available Artifact blob hash mismatch: {blob_hash}"
+                )
+            handle.seek(0)
+            return handle
+        except BaseException:
+            handle.close()
+            raise
 
     def verify_final(self, staged: StagedArtifact) -> Path:
         """Verify that the final content-addressed blob matches a stage."""
@@ -276,6 +313,7 @@ class ArtifactStore:
         """Atomically isolate an unreferenced or corrupt final hash blob."""
 
         source = self.blob_path(blob_hash)
+        self._require_controlled_path(source, include_leaf=False)
         if not source.exists() and not source.is_symlink():
             raise FileNotFoundError(source)
         target_root = (
@@ -299,7 +337,19 @@ class ArtifactStore:
                 available.append(blob_hash)
         return tuple(sorted(available))
 
+    def validate_layout(self) -> None:
+        """Reject Workspace Artifact roots redirected through reparse points."""
+
+        for path in (
+            self.artifacts_root,
+            self.staging_root,
+            self.quarantine_root,
+            self.artifacts_root / "sha256",
+        ):
+            self._require_controlled_path(path)
+
     def _verify_final(self, final_path: Path, staged: StagedArtifact) -> None:
+        self._require_controlled_path(final_path)
         if final_path.is_symlink() or not final_path.is_file():
             raise ArtifactIntegrityError(
                 f"non-regular final blob: {final_path}"
@@ -315,6 +365,7 @@ class ArtifactStore:
             )
 
     def _require_workspace_partial(self, partial_path: Path) -> None:
+        self._require_controlled_path(partial_path)
         if os.path.islink(partial_path) or not partial_path.is_file():
             raise ValueError(
                 "promotion source must be a regular Workspace staging .partial"
@@ -325,6 +376,7 @@ class ArtifactStore:
             raise ValueError("promotion source must be a Workspace staging .partial")
 
     def _require_workspace_partial_entry(self, partial_path: Path) -> None:
+        self._require_controlled_path(partial_path, include_leaf=False)
         normalized = Path(os.path.abspath(partial_path))
         staging = Path(os.path.abspath(self.staging_root))
         if normalized.parent != staging or normalized.suffix != ".partial":
@@ -342,7 +394,10 @@ class ArtifactStore:
         source: Path,
         target_root: Path,
     ) -> Path:
+        self._require_controlled_path(source, include_leaf=False)
+        self._require_controlled_path(target_root)
         target_root.mkdir(parents=True, exist_ok=True)
+        self._require_controlled_path(target_root)
         target = target_root / source.name
         while target.exists() or target.is_symlink():
             target = target_root / f"{source.stem}-{uuid4().hex}{source.suffix}"
@@ -350,6 +405,51 @@ class ArtifactStore:
             raise OSError("Artifact source and quarantine are on different volumes")
         self._replace(source, target)
         return target
+
+    def _require_controlled_path(
+        self,
+        path: Path,
+        *,
+        include_leaf: bool = True,
+    ) -> None:
+        workspace = Path(os.path.abspath(self.workspace_root))
+        normalized = Path(os.path.abspath(path))
+        try:
+            relative = normalized.relative_to(workspace)
+        except ValueError as exc:
+            raise ArtifactIntegrityError(
+                f"Artifact path escapes the Workspace: {normalized}"
+            ) from exc
+        parts = relative.parts if include_leaf else relative.parts[:-1]
+        current = workspace
+        for part in parts:
+            current /= part
+            try:
+                metadata = current.lstat()
+            except FileNotFoundError:
+                continue
+            if self._stat_is_reparse(metadata) or getattr(
+                os.path,
+                "isjunction",
+                lambda candidate: False,
+            )(current):
+                raise ArtifactIntegrityError(
+                    f"Artifact path contains a reparse point: {current}"
+                )
+
+    @staticmethod
+    def _stat_is_reparse(metadata: os.stat_result) -> bool:
+        reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        file_attributes = int(
+            getattr(metadata, "st_file_attributes", 0)
+        )
+        return stat.S_ISLNK(metadata.st_mode) or bool(
+            reparse_flag and file_attributes & reparse_flag
+        )
+
+    @staticmethod
+    def _file_identity(metadata: os.stat_result) -> tuple[int, int]:
+        return int(metadata.st_dev), int(metadata.st_ino)
 
     def _write_all(self, handle: BinaryIO, content: bytes) -> None:
         remaining = memoryview(content)
@@ -363,12 +463,16 @@ class ArtifactStore:
 
     @staticmethod
     def _measure(path: Path) -> tuple[str, int]:
+        with path.open("rb") as handle:
+            return ArtifactStore._measure_handle(handle)
+
+    @staticmethod
+    def _measure_handle(handle: BinaryIO) -> tuple[str, int]:
         hasher = hashlib.sha256()
         size = 0
-        with path.open("rb") as handle:
-            while chunk := handle.read(1024 * 1024):
-                hasher.update(chunk)
-                size += len(chunk)
+        while chunk := handle.read(1024 * 1024):
+            hasher.update(chunk)
+            size += len(chunk)
         return f"sha256:{hasher.hexdigest()}", size
 
     @staticmethod

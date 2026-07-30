@@ -483,6 +483,32 @@ class D1CommandTransactionTests(unittest.TestCase):
                 ):
                     self._service().execute(command)
 
+    def test_rejected_replay_fails_closed_when_error_is_not_bound(self) -> None:
+        command = self._command(expected_revision=2)
+        with self.assertRaises(CommandExecutionError):
+            self._service().execute(command)
+        row = self.connection.execute(
+            "SELECT error_json FROM command_log WHERE command_id = ?",
+            (str(command.command_id),),
+        ).fetchone()
+        corrupt = json.loads(str(row["error_json"]))
+        corrupt["details"]["aggregate_id"] = str(uuid4())
+        self.connection.execute(
+            """
+            UPDATE command_log
+            SET error_json = ?
+            WHERE command_id = ?
+            """,
+            (_json(corrupt), str(command.command_id)),
+        )
+        self.connection.commit()
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "stored Command rejection",
+        ):
+            self._service().execute(command)
+
     def test_two_connections_racing_same_id_apply_once(self) -> None:
         command = self._command()
         first_before_commit = threading.Event()

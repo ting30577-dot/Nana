@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import json
+import math
 import sqlite3
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from nana_sidecar.storage import connect_database
 
 
 _MAX_SQLITE_INTEGER = (1 << 63) - 1
+_MAX_SQLITE_INTEGER_TEXT = str(_MAX_SQLITE_INTEGER)
 _MAX_BATCH_SIZE = 1024
 
 
@@ -42,12 +44,18 @@ def parse_last_event_id(value: str | None) -> int:
             status_code=400,
             detail="Last-Event-ID must be a non-negative decimal integer",
         )
-    cursor = int(value)
-    if cursor > _MAX_SQLITE_INTEGER:
+    if (
+        len(value) > len(_MAX_SQLITE_INTEGER_TEXT)
+        or (
+            len(value) == len(_MAX_SQLITE_INTEGER_TEXT)
+            and value > _MAX_SQLITE_INTEGER_TEXT
+        )
+    ):
         raise HTTPException(
             status_code=400,
             detail="Last-Event-ID exceeds the SQLite Event ID range",
         )
+    cursor = int(value)
     return cursor
 
 
@@ -59,7 +67,13 @@ class LocalSession:
     origin: str
 
     def __post_init__(self) -> None:
-        if len(self.token.encode("utf-8")) < 32:
+        try:
+            encoded_token = self.token.encode("ascii")
+        except UnicodeEncodeError as exc:
+            raise ValueError(
+                "local session token must contain only ASCII characters"
+            ) from exc
+        if len(encoded_token) < 32:
             raise ValueError("local session token must be at least 32 bytes")
         valid_origin = False
         try:
@@ -93,12 +107,25 @@ class LocalSession:
             else None
         )
         prefix = "Bearer "
+        candidate = (
+            authorization[len(prefix) :]
+            if authorization is not None
+            and authorization.startswith(prefix)
+            else None
+        )
+        try:
+            candidate_bytes = (
+                candidate.encode("ascii")
+                if candidate is not None
+                else None
+            )
+        except UnicodeEncodeError:
+            candidate_bytes = None
         if (
-            authorization is None
-            or not authorization.startswith(prefix)
+            candidate_bytes is None
             or not hmac.compare_digest(
-                authorization[len(prefix) :],
-                self.token,
+                candidate_bytes,
+                self.token.encode("ascii"),
             )
         ):
             raise HTTPException(
@@ -127,9 +154,20 @@ class SQLiteEventStream:
         poll_interval: float = 0.1,
         batch_size: int = 64,
     ) -> None:
-        if poll_interval <= 0:
-            raise ValueError("poll_interval must be positive")
-        if not 1 <= batch_size <= _MAX_BATCH_SIZE:
+        if (
+            isinstance(poll_interval, bool)
+            or not isinstance(poll_interval, (int, float))
+            or not math.isfinite(poll_interval)
+            or poll_interval <= 0
+        ):
+            raise ValueError(
+                "poll_interval must be a finite positive number"
+            )
+        if (
+            isinstance(batch_size, bool)
+            or not isinstance(batch_size, int)
+            or not 1 <= batch_size <= _MAX_BATCH_SIZE
+        ):
             raise ValueError(
                 f"batch_size must be between 1 and {_MAX_BATCH_SIZE}"
             )

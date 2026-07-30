@@ -121,7 +121,7 @@ class GateProjection:
 
     def apply(self, event_id: int, event_type: str, event: dict[str, Any]) -> None:
         if event_id <= self.last_event_id:
-            raise AssertionError("Event IDs must be strictly increasing")
+            return
         self.last_event_id = event_id
         self.event_count += 1
         self.event_ids.append(event_id)
@@ -378,7 +378,25 @@ class D1RuntimeGateTests(unittest.IsolatedAsyncioTestCase):
         )
 
         projection = GateProjection()
-        for segment_size in (3_333, 4_444, 2_223):
+        await self._consume(projection, count=3_333)
+
+        before_duplicate = projection.ui_snapshot()
+        before_duplicate_ids = list(projection.event_ids)
+        duplicate_stream = BoundedASGIStream(
+            self.app,
+            last_event_id=projection.last_event_id - 1,
+        )
+        await duplicate_stream.open()
+        try:
+            duplicate = _parse_frame(await duplicate_stream.next_frame())
+        finally:
+            await duplicate_stream.close()
+        self.assertEqual(duplicate[0], projection.last_event_id)
+        projection.apply(*duplicate)
+        self.assertEqual(projection.ui_snapshot(), before_duplicate)
+        self.assertEqual(projection.event_ids, before_duplicate_ids)
+
+        for segment_size in (4_444, 2_223):
             await self._consume(projection, count=segment_size)
 
         self.assertEqual(projection.event_count, EVENT_COUNT)

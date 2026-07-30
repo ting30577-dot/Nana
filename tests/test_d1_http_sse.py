@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import tempfile
 import unittest
 from collections.abc import Callable
@@ -366,11 +367,22 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
             await iterator.aclose()
 
     async def test_batch_size_has_a_hard_memory_bound(self) -> None:
-        with self.assertRaisesRegex(ValueError, "batch_size"):
-            SQLiteEventStream(
-                self.database_path,
-                batch_size=1025,
-            )
+        for invalid in (0, 1025, True, 1.5):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "batch_size"):
+                    SQLiteEventStream(
+                        self.database_path,
+                        batch_size=invalid,
+                    )
+
+    async def test_poll_interval_must_be_finite_positive_number(self) -> None:
+        for invalid in (0, -1, math.nan, math.inf, -math.inf, True):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "poll_interval"):
+                    SQLiteEventStream(
+                        self.database_path,
+                        poll_interval=invalid,
+                    )
 
     async def test_http_disconnect_closes_stream_database_connection(
         self,
@@ -465,6 +477,14 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
                 + [(b"last-event-id", b"0"), (b"last-event-id", b"1")],
                 400,
             ),
+            (
+                [
+                    (b"host", b"127.0.0.1:43123"),
+                    (b"origin", ORIGIN.encode("ascii")),
+                    (b"authorization", b"Bearer \xff"),
+                ],
+                401,
+            ),
         )
 
         for raw_headers, expected_status in cases:
@@ -492,6 +512,7 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
                 "-1",
                 "1.5",
                 "9223372036854775808",
+                "9" * 5_000,
             ):
                 with self.subTest(invalid=invalid):
                     response = await client.get(
@@ -517,6 +538,9 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(invalid=invalid):
                 with self.assertRaisesRegex(ValueError, "loopback"):
                     LocalSession(token=TOKEN, origin=invalid)
+
+        with self.assertRaisesRegex(ValueError, "ASCII"):
+            LocalSession(token="密" * 32, origin=ORIGIN)
 
     async def test_stream_and_session_configuration_fail_closed_as_pair(
         self,

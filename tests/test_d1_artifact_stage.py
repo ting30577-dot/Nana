@@ -250,6 +250,31 @@ class D1ArtifactStageTests(unittest.TestCase):
             str(os.stat(staged.partial_path).st_dev),
         )
 
+    def test_workspace_artifact_ancestor_junction_is_rejected(self) -> None:
+        store = ArtifactStore(self.workspace)
+        store.artifacts_root.mkdir(parents=True)
+        real_isjunction = getattr(os.path, "isjunction", lambda path: False)
+
+        def injected_isjunction(path: object) -> bool:
+            return (
+                Path(path) == store.artifacts_root
+                or real_isjunction(path)
+            )
+
+        with patch.object(
+            os.path,
+            "isjunction",
+            side_effect=injected_isjunction,
+            create=True,
+        ):
+            with self.assertRaisesRegex(
+                ArtifactIntegrityError,
+                "reparse point",
+            ):
+                store.stage_bytes(b"must stay in Workspace", "text/plain")
+
+        self.assertFalse(store.staging_root.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
