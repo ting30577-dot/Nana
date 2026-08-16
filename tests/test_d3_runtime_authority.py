@@ -481,7 +481,12 @@ class D3RuntimeAuthorityTests(unittest.IsolatedAsyncioTestCase):
                 )
 
             def await_ready(process: subprocess.Popen[str]) -> None:
-                deadline = time.monotonic() + 5
+                # Importing and initializing the runtime can exceed five seconds
+                # on a cold Windows machine. Keep an upper bound for a genuinely
+                # wedged child, but do not turn normal cold-start variance into a
+                # deterministic failure.
+                deadline = time.monotonic() + 30
+                last_probe_error: Exception | None = None
                 while time.monotonic() < deadline:
                     returncode = process.poll()
                     if returncode is not None:
@@ -492,7 +497,8 @@ class D3RuntimeAuthorityTests(unittest.IsolatedAsyncioTestCase):
                         )
                     try:
                         health = get(f"{process_origin}/healthz", timeout=0.2)
-                    except Exception:
+                    except Exception as exc:
+                        last_probe_error = exc
                         time.sleep(0.02)
                         continue
                     if health.status_code == 200:
@@ -504,7 +510,8 @@ class D3RuntimeAuthorityTests(unittest.IsolatedAsyncioTestCase):
                 _stdout, stderr = process.communicate(timeout=1)
                 self.fail(
                     "runtime never became ready "
-                    f"(exit code {returncode}); stderr={stderr[-4000:]!r}"
+                    f"(exit code {returncode}); stderr={stderr[-4000:]!r}; "
+                    f"last health probe={last_probe_error!r}"
                 )
 
             first = launch()

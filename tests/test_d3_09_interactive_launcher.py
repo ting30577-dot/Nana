@@ -2,19 +2,79 @@
 
 from __future__ import annotations
 
-import tempfile
+import contextlib
+import io
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from httpx import ASGITransport, AsyncClient
 
-from scripts.run_d3_dev_journey import create_interactive_runtime
+from scripts.run_d3_dev_journey import (
+    _open_browser_when_ready,
+    create_interactive_runtime,
+)
 
 
 class D309InteractiveLauncherTests(unittest.IsolatedAsyncioTestCase):
+    def test_browser_opener_waits_beyond_the_legacy_retry_window(self) -> None:
+        attempts = 0
+
+        class ReadyResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+        def delayed_health(*_args: object, **_kwargs: object) -> ReadyResponse:
+            nonlocal attempts
+            attempts += 1
+            if attempts <= 100:
+                raise OSError("runtime still starting")
+            return ReadyResponse()
+
+        with (
+            patch("scripts.run_d3_dev_journey.urlopen", side_effect=delayed_health),
+            patch("scripts.run_d3_dev_journey.webbrowser.open", return_value=True) as opened,
+        ):
+            result = _open_browser_when_ready(
+                "http://127.0.0.1:43130",
+                "secret-never-logged",
+                threading.Event(),
+                retry_interval=0,
+            )
+
+        self.assertTrue(result)
+        self.assertEqual(attempts, 101)
+        opened.assert_called_once_with(
+            "http://127.0.0.1:43130/#bootstrap=secret-never-logged"
+        )
+
+    def test_browser_opener_reports_when_runtime_stops_before_ready(self) -> None:
+        stop_event = threading.Event()
+        stop_event.set()
+        stderr = io.StringIO()
+
+        with contextlib.redirect_stderr(stderr):
+            result = _open_browser_when_ready(
+                "http://127.0.0.1:43130",
+                "secret-never-logged",
+                stop_event,
+                retry_interval=0,
+            )
+
+        self.assertFalse(result)
+        self.assertIn("stopped before", stderr.getvalue())
+        self.assertNotIn("secret-never-logged", stderr.getvalue())
+
     def test_launcher_creates_workspace_parent_and_reads_empty_target_from_stdin(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -36,7 +36,8 @@ summaries are historical snapshots unless this page explicitly cites them.
 
 ## Current verification
 
-- Python: 421 passed, 2 platform skips.
+- Python unittest discovery, freshly rerun after the launcher/readiness repair:
+  423 run; 421 passed, 2 platform skips.
 - Vitest: 67/67; projection self-test passed.
 - TypeScript no-emit check and Vite production build passed.
 - Playwright: 10/10 consecutive complete success journeys, retries=0.

@@ -8,7 +8,6 @@ import secrets
 import socket
 import sys
 import threading
-import time
 import webbrowser
 from pathlib import Path
 from typing import Callable
@@ -109,19 +108,43 @@ def _listener(requested_port: int) -> tuple[socket.socket, int]:
         raise
 
 
-def _open_browser_when_ready(origin: str, bootstrap_secret: str) -> None:
-    """Open only after health is reachable; the secret stays in the fragment."""
+def _open_browser_when_ready(
+    origin: str,
+    bootstrap_secret: str,
+    stop_event: threading.Event | None = None,
+    *,
+    retry_interval: float = 0.05,
+) -> bool:
+    """Open after health is reachable, or report why startup stopped waiting."""
 
+    stop_event = stop_event or threading.Event()
     health = origin + "/healthz"
-    for _attempt in range(100):
+    last_error: OSError | None = None
+    while not stop_event.is_set():
         try:
             with urlopen(health, timeout=0.25) as response:
                 if response.status == 200:
-                    webbrowser.open(origin + "/#bootstrap=" + bootstrap_secret)
-                    return
-        except OSError:
-            pass
-        time.sleep(0.05)
+                    opened = webbrowser.open(
+                        origin + "/#bootstrap=" + bootstrap_secret
+                    )
+                    if not opened:
+                        print(
+                            "Nana runtime is ready, but the default browser could "
+                            f"not be opened automatically; open {origin} manually.",
+                            file=sys.stderr,
+                        )
+                    return bool(opened)
+        except OSError as exc:
+            last_error = exc
+        stop_event.wait(retry_interval)
+
+    detail = f" Last health error: {last_error!r}." if last_error else ""
+    print(
+        "Nana stopped before the browser bootstrap could observe a ready runtime."
+        + detail,
+        file=sys.stderr,
+    )
+    return False
 
 
 def main() -> int:
@@ -149,9 +172,10 @@ def main() -> int:
             sort_keys=True,
         )
     )
+    opener_stop = threading.Event()
     opener = threading.Thread(
         target=_open_browser_when_ready,
-        args=(session.origin, bootstrap_secret),
+        args=(session.origin, bootstrap_secret, opener_stop),
         name="nana-browser-bootstrap",
         daemon=True,
     )
@@ -160,6 +184,8 @@ def main() -> int:
     try:
         uvicorn.Server(config).run(sockets=[listener])
     finally:
+        opener_stop.set()
+        opener.join(timeout=1)
         listener.close()
     return 0
 
