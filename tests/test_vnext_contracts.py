@@ -19,6 +19,17 @@ from nana_sidecar.contracts.authorization import (
     compute_action_hash,
     policy_grant_matches,
 )
+from nana_sidecar.contracts.builtin_capabilities import (
+    PYTHON_UNITTEST_LOCKED_CAPABILITY,
+    PYTHON_UNITTEST_LOCKED_TEST_IDS,
+    python_unittest_locked_registry_entry,
+)
+from nana_sidecar.contracts.capabilities import (
+    CapabilityAuthorizationMode,
+    CapabilityDefaultEffect,
+    CapabilityProviderMode,
+    CapabilityRegistryEntry,
+)
 from nana_sidecar.contracts.catalog import ContractCatalogSchema
 from nana_sidecar.contracts.commands import (
     DEV_COMMAND_NAMES,
@@ -29,6 +40,7 @@ from nana_sidecar.contracts.common import (
     ActorKind,
     ActorRef,
     BudgetSnapshot,
+    CapabilityRef,
     EffectScope,
     ResourceUsage,
     VersionedRef,
@@ -47,6 +59,7 @@ from nana_sidecar.contracts.domain import (
     PolicyGrant,
     PolicyGrantState,
     ReceiptResult,
+    Resource,
     Run,
 )
 from nana_sidecar.contracts.errors import ErrorResponse
@@ -108,6 +121,7 @@ class CommandContractTests(unittest.TestCase):
                 "RevisePlan",
                 "StartRun",
                 "PauseRun",
+                "ResumeRun",
                 "CancelRun",
                 "ProposeAction",
                 "CreatePolicyGrant",
@@ -174,6 +188,7 @@ class CommandContractTests(unittest.TestCase):
                 "PolicyGrant",
                 "Approval",
                 "ActionReceipt",
+                "CapabilityRegistryEntry",
                 "Artifact",
                 "Resource",
                 "Locator",
@@ -275,6 +290,41 @@ class LocatorContractTests(unittest.TestCase):
                 page=1,
                 parser_id="fixture-parser",
                 parser_version="1",
+            )
+
+    def test_locator_and_resource_references_reject_embedded_secrets(self) -> None:
+        with self.assertRaisesRegex(ValidationError, "credentials"):
+            WebCoordinates(
+                canonical_url="https://user:secret@example.test/paper",
+                retrieved_at=NOW,
+                content_hash=HASH,
+                quote_span=CharacterSpan(start_char=1, end_char=2),
+            )
+        with self.assertRaisesRegex(ValidationError, "sensitive query"):
+            WebCoordinates(
+                canonical_url="https://example.test/paper?token=secret",
+                retrieved_at=NOW,
+                content_hash=HASH,
+                quote_span=CharacterSpan(start_char=1, end_char=2),
+            )
+        with self.assertRaisesRegex(ValidationError, "credentials"):
+            RepoCoordinates(
+                remote="https://user:secret@example.test/repository.git",
+                commit="abcdef1",
+                path="src/window.py",
+                line_span=LineSpan(start_line=1, end_line=1),
+            )
+        with self.assertRaisesRegex(ValidationError, "relative logical"):
+            Resource(
+                id=uuid4(),
+                project_id=uuid4(),
+                kind="note",
+                logical_ref="C:\\Users\\name\\secret.md",
+                media_type="text/markdown",
+                data_class="personal",
+                captured_at=NOW,
+                status="draft",
+                revision=1,
             )
 
 
@@ -412,7 +462,11 @@ class DomainInvariantTests(unittest.TestCase):
             "plan_id": uuid4(),
             "plan_revision": 1,
             "capabilities": [
-                VersionedRef(id="python.unittest.locked", version="1")
+                CapabilityRef(
+                    id="python.unittest.locked",
+                    version="1",
+                    digest=HASH,
+                )
             ],
             "models": [],
             "backend": VersionedRef(id="builtin_local", version="1"),
@@ -445,7 +499,11 @@ class DomainInvariantTests(unittest.TestCase):
             "subject_type": "action",
             "subject_id": uuid4(),
             "subject_hash": HASH,
-            "capability": VersionedRef(id="export.publish", version="1"),
+            "capability": CapabilityRef(
+                id="export.publish",
+                version="1",
+                digest=HASH,
+            ),
             "parameter_summary": {},
             "requested_effects": EffectScope(writes=("external:test-target",)),
             "data_class": "public",
@@ -466,6 +524,7 @@ class DomainInvariantTests(unittest.TestCase):
             "authorization_source": AuthorizationSource.APPROVAL,
             "authorization_ref": "approval:test",
             "actual_effects": EffectScope(writes=("external:test-target",)),
+            "authorized_effects": EffectScope(writes=("external:test-target",)),
             "result": ReceiptResult.SUCCEEDED,
             "resource_usage": ResourceUsage(wall_clock_ms=5),
             "created_at": NOW,
@@ -473,12 +532,48 @@ class DomainInvariantTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "approver"):
             ActionReceipt(**common)
 
+    def test_action_receipt_records_authorized_effects_and_violations(self) -> None:
+        common = {
+            "id": uuid4(),
+            "action_id": uuid4(),
+            "action_hash": HASH,
+            "authorization_source": AuthorizationSource.AUTO_POLICY,
+            "authorization_ref": "policy:auto",
+            "authorized_effects": EffectScope(writes=("scratch:run",)),
+            "actual_effects": EffectScope(writes=("external:leak",)),
+            "effect_violation": True,
+            "resource_usage": ResourceUsage(wall_clock_ms=5),
+            "created_at": NOW,
+        }
+        receipt = ActionReceipt(
+            **common,
+            result=ReceiptResult.EFFECT_UNKNOWN,
+        )
+        self.assertTrue(receipt.effect_violation)
+        with self.assertRaisesRegex(ValidationError, "effect_unknown"):
+            ActionReceipt(
+                **common,
+                result=ReceiptResult.SUCCEEDED,
+            )
+        with self.assertRaisesRegex(ValidationError, "effect_violation"):
+            ActionReceipt(
+                **{
+                    **common,
+                    "effect_violation": False,
+                    "result": ReceiptResult.SUCCEEDED,
+                }
+            )
+
 
 class AuthorizationContractTests(unittest.TestCase):
     def action_material(self, **changes: object) -> ActionHashMaterial:
         args = changes.pop("args", {"destination": "review/draft.md"})
         values = {
-            "capability": VersionedRef(id="export.draft_external", version="1"),
+            "capability": CapabilityRef(
+                id="workspace.draft_internal",
+                version="1",
+                digest=HASH,
+            ),
             "args": args,
             "args_hash": canonical_json_hash(args),
             "data_class": "public",
@@ -493,6 +588,40 @@ class AuthorizationContractTests(unittest.TestCase):
         }
         values.update(changes)
         return ActionHashMaterial(**values)
+
+    def registry_entry(
+        self,
+        material: ActionHashMaterial,
+        **changes: object,
+    ) -> CapabilityRegistryEntry:
+        values = {
+            "capability": material.capability,
+            "args_schema": {
+                "type": "object",
+                "required": ["destination"],
+                "properties": {
+                    "destination": {
+                        "type": "string",
+                        "const": "review/draft.md",
+                    }
+                },
+                "additionalProperties": False,
+            },
+            "risk_tier": material.risk_tier,
+            "reversible": material.reversible,
+            "authorization_mode": CapabilityAuthorizationMode.POLICY_GRANT,
+            "grantable": True,
+            "provider_mode": CapabilityProviderMode.FORBIDDEN,
+            "allowed_providers": (),
+            "read_roots": material.requested_effects.reads,
+            "write_roots": material.requested_effects.writes,
+            "network_targets": material.requested_effects.network,
+            "network_methods": material.network_methods,
+            "process_targets": material.requested_effects.processes,
+            "timeout_seconds": material.budget.wall_clock_seconds,
+        }
+        values.update(changes)
+        return CapabilityRegistryEntry(**values)
 
     def approval(
         self,
@@ -538,10 +667,11 @@ class AuthorizationContractTests(unittest.TestCase):
             },
             allowed_data_classes=("public",),
             allowed_providers=(),
-            read_roots=(),
+            read_roots=material.requested_effects.reads,
             write_roots=("external:review",),
             network_targets=(),
             network_methods=(),
+            process_targets=material.requested_effects.processes,
             per_action_budget=budget(),
             cumulative_budget=budget(),
             max_concurrency=1,
@@ -585,16 +715,33 @@ class AuthorizationContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "canonical args"):
             self.action_material(args_hash=HASH)
 
+    def test_capability_digest_and_one_time_approval_are_mandatory(self) -> None:
+        with self.assertRaises(ValidationError):
+            self.action_material(
+                capability={"id": "export.draft_external", "version": "1"}
+            )
+        material = self.action_material()
+        approval_payload = self.approval(uuid4(), material).model_dump()
+        approval_payload["allowed_uses"] = 2
+        with self.assertRaises(ValidationError):
+            Approval(**approval_payload)
+
     def test_approval_is_invalidated_by_action_change_expiry_or_replay(
         self,
     ) -> None:
         action_id = uuid4()
         material = self.action_material()
         approval = self.approval(action_id, material)
+        registry_entry = self.registry_entry(
+            material,
+            authorization_mode=CapabilityAuthorizationMode.ONE_TIME_APPROVAL,
+            grantable=False,
+        )
         valid = approval_authorizes(
             approval,
             action_id=action_id,
             material=material,
+            registry_entry=registry_entry,
             at=NOW,
             prior_uses=0,
         )
@@ -607,6 +754,7 @@ class AuthorizationContractTests(unittest.TestCase):
             approval,
             action_id=action_id,
             material=changed,
+            registry_entry=registry_entry,
             at=NOW,
             prior_uses=0,
         )
@@ -617,6 +765,7 @@ class AuthorizationContractTests(unittest.TestCase):
             approval,
             action_id=action_id,
             material=material,
+            registry_entry=registry_entry,
             at=approval.expires_at,
             prior_uses=0,
         )
@@ -624,16 +773,259 @@ class AuthorizationContractTests(unittest.TestCase):
             approval,
             action_id=action_id,
             material=material,
+            registry_entry=registry_entry,
             at=NOW,
             prior_uses=1,
         )
         self.assertIn("expired", expired.reasons)
         self.assertIn("uses", replayed.reasons)
 
+    def test_registry_truth_overrides_action_self_report(self) -> None:
+        project_id = uuid4()
+        material = self.action_material()
+        grant = self.grant(project_id, material)
+        registry_entry = self.registry_entry(material, risk_tier="T4")
+        context = GrantMatchContext(
+            project_id=project_id,
+            projected_cumulative_budget=budget(),
+            current_concurrency=0,
+        )
+        result = policy_grant_matches(
+            grant,
+            material=material,
+            registry_entry=registry_entry,
+            context=context,
+            at=NOW,
+        )
+        self.assertFalse(result.matches)
+        self.assertIn("capability_registry_risk", result.reasons)
+
+    def test_registry_ceiling_rejects_effect_network_process_and_timeout_escape(
+        self,
+    ) -> None:
+        project_id = uuid4()
+        material = self.action_material()
+        grant = self.grant(project_id, material)
+        context = GrantMatchContext(
+            project_id=project_id,
+            projected_cumulative_budget=budget(),
+            current_concurrency=0,
+        )
+
+        cases = (
+            (
+                self.action_material(
+                    requested_effects=EffectScope(writes=("external:review",)),
+                ),
+                self.registry_entry(material, write_roots=()),
+                "capability_registry_write_scope",
+            ),
+            (
+                self.action_material(
+                    requested_effects=EffectScope(
+                        writes=("external:review",),
+                        network=("https://example.test",),
+                    ),
+                ),
+                self.registry_entry(
+                    material,
+                    network_targets=(),
+                ),
+                "capability_registry_network_scope",
+            ),
+            (
+                self.action_material(
+                    requested_effects=EffectScope(
+                        writes=("external:review",),
+                        processes=("builtin:other",),
+                    ),
+                ),
+                self.registry_entry(
+                    material,
+                    process_targets=("builtin:python.unittest.locked",),
+                ),
+                "capability_registry_process_scope",
+            ),
+            (
+                self.action_material(
+                    budget=budget().model_copy(
+                        update={"wall_clock_seconds": 61}
+                    ),
+                ),
+                self.registry_entry(material, timeout_seconds=60),
+                "capability_registry_timeout",
+            ),
+        )
+
+        for changed_material, registry_entry, reason in cases:
+            with self.subTest(reason=reason):
+                result = policy_grant_matches(
+                    grant,
+                    material=changed_material,
+                    registry_entry=registry_entry,
+                    context=context,
+                    at=NOW,
+                )
+                self.assertFalse(result.matches)
+                self.assertIn(reason, result.reasons)
+
+    def test_builtin_python_unittest_locked_registry_is_frozen_and_closed(
+        self,
+    ) -> None:
+        entry = python_unittest_locked_registry_entry()
+
+        self.assertEqual(entry.capability, PYTHON_UNITTEST_LOCKED_CAPABILITY)
+        self.assertEqual(entry.capability.id, "python.unittest.locked")
+        self.assertEqual(entry.capability.version, "1")
+        self.assertEqual(entry.risk_tier, "T2")
+        self.assertTrue(entry.reversible)
+        self.assertEqual(
+            entry.authorization_mode,
+            CapabilityAuthorizationMode.POLICY_GRANT,
+        )
+        self.assertEqual(entry.provider_mode, CapabilityProviderMode.FORBIDDEN)
+        self.assertEqual(entry.read_roots, ("project:source", "project:tests"))
+        self.assertEqual(entry.write_roots, ())
+        self.assertEqual(entry.network_targets, ())
+        self.assertEqual(entry.network_methods, ())
+        self.assertEqual(entry.env_keys, ())
+        self.assertEqual(
+            entry.process_targets,
+            ("builtin:python.unittest.locked",),
+        )
+        self.assertEqual(entry.timeout_seconds, 60)
+        self.assertEqual(entry.default_effect, CapabilityDefaultEffect.REVERSIBLE)
+        self.assertEqual(
+            entry.args_schema["properties"]["test_id"]["enum"],
+            list(PYTHON_UNITTEST_LOCKED_TEST_IDS),
+        )
+
+        material = self.action_material(
+            capability=entry.capability,
+            args={"test_id": PYTHON_UNITTEST_LOCKED_TEST_IDS[0]},
+            requested_effects=EffectScope(
+                reads=("project:source", "project:tests"),
+                processes=("builtin:python.unittest.locked",),
+            ),
+            budget=budget().model_copy(
+                update={
+                    "read_roots": ("project:source", "project:tests"),
+                    "write_roots": ("project:scratch",),
+                    "network_targets": (),
+                }
+            ),
+            risk_tier="T2",
+        )
+        project_id = uuid4()
+        grant = self.grant(project_id, material)
+        grant = grant.model_copy(
+            update={
+                "constraints": grant.constraints.model_copy(
+                    update={
+                        "args_schema": entry.args_schema,
+                        "read_roots": ("project:source", "project:tests"),
+                        "write_roots": ("project:scratch",),
+                        "process_targets": ("builtin:python.unittest.locked",),
+                        "per_action_budget": material.budget,
+                        "cumulative_budget": material.budget,
+                    }
+                )
+            }
+        )
+        context = GrantMatchContext(
+            project_id=project_id,
+            projected_cumulative_budget=material.budget,
+            current_concurrency=0,
+        )
+        self.assertEqual(grant.constraints.read_roots, entry.read_roots)
+        self.assertEqual(grant.constraints.process_targets, entry.process_targets)
+
+        self.assertTrue(
+            policy_grant_matches(
+                grant,
+                material=material,
+                registry_entry=entry,
+                context=context,
+                at=NOW,
+            ).matches
+        )
+
+        escaped_args = self.action_material(
+            capability=entry.capability,
+            args={"test_id": "tests.test_other.NotAllowed.test_case"},
+            requested_effects=material.requested_effects,
+            budget=material.budget,
+            risk_tier="T2",
+        )
+        self.assertIn(
+            "capability_registry_args",
+            policy_grant_matches(
+                grant,
+                material=escaped_args,
+                registry_entry=entry,
+                context=context,
+                at=NOW,
+            ).reasons,
+        )
+
+        process_escape = self.action_material(
+            capability=entry.capability,
+            args={"test_id": PYTHON_UNITTEST_LOCKED_TEST_IDS[0]},
+            requested_effects=EffectScope(
+                reads=("project:source", "project:tests"),
+                writes=("project:scratch",),
+                processes=("builtin:other",),
+            ),
+            budget=material.budget,
+            risk_tier="T1",
+        )
+        self.assertIn(
+            "capability_registry_process_scope",
+            policy_grant_matches(
+                grant,
+                material=process_escape,
+                registry_entry=entry,
+                context=context,
+                at=NOW,
+            ).reasons,
+        )
+
+    def test_capability_registry_entry_json_round_trips_without_digest_drift(
+        self,
+    ) -> None:
+        entry = python_unittest_locked_registry_entry()
+        restored = CapabilityRegistryEntry.model_validate_json(
+            entry.model_dump_json()
+        )
+
+        self.assertEqual(restored, entry)
+        self.assertEqual(restored.contract_digest, entry.contract_digest)
+        self.assertEqual(
+            restored.model_dump(mode="json"),
+            entry.model_dump(mode="json"),
+        )
+        self.assertEqual(
+            entry.contract_digest,
+            "sha256:18ccf020b55ea54abd26d2132db54313e2005788bd9c91306f0f2810ee735b38",
+        )
+
+    def test_capability_contract_digest_covers_execution_ceiling(self) -> None:
+        entry = python_unittest_locked_registry_entry()
+        material = entry.model_dump(mode="json", exclude={"contract_digest"})
+        changed = CapabilityRegistryEntry(
+            **{
+                **material,
+                "write_roots": ("project:scratch", "project:other"),
+            }
+        )
+
+        self.assertNotEqual(entry.contract_digest, changed.contract_digest)
+
     def test_policy_grant_matches_only_full_constraint_subset(self) -> None:
         project_id = uuid4()
         material = self.action_material()
         grant = self.grant(project_id, material)
+        registry_entry = self.registry_entry(material)
         context = GrantMatchContext(
             project_id=project_id,
             projected_cumulative_budget=budget(),
@@ -643,6 +1035,7 @@ class AuthorizationContractTests(unittest.TestCase):
             policy_grant_matches(
                 grant,
                 material=material,
+                registry_entry=registry_entry,
                 context=context,
                 at=NOW,
             ).matches
@@ -654,11 +1047,65 @@ class AuthorizationContractTests(unittest.TestCase):
         result = policy_grant_matches(
             grant,
             material=escaped,
+            registry_entry=registry_entry,
             context=context,
             at=NOW,
         )
         self.assertFalse(result.matches)
         self.assertIn("write_scope", result.reasons)
+
+    def test_provider_constraints_fail_closed(self) -> None:
+        project_id = uuid4()
+        material = self.action_material(provider="local-model")
+        grant = self.grant(project_id, material)
+        context = GrantMatchContext(
+            project_id=project_id,
+            projected_cumulative_budget=budget(),
+            current_concurrency=0,
+        )
+        self.assertIn(
+            "provider",
+            policy_grant_matches(
+                grant,
+                material=material,
+                registry_entry=self.registry_entry(
+                    material,
+                    provider_mode=CapabilityProviderMode.REQUIRED,
+                    allowed_providers=("local-model",),
+                ),
+                context=context,
+                at=NOW,
+            ).reasons,
+        )
+
+        allowed_constraints = grant.constraints.model_copy(
+            update={"allowed_providers": ("local-model",)}
+        )
+        allowed_grant = grant.model_copy(update={"constraints": allowed_constraints})
+        self.assertTrue(
+            policy_grant_matches(
+                allowed_grant,
+                material=material,
+                registry_entry=self.registry_entry(
+                    material,
+                    provider_mode=CapabilityProviderMode.REQUIRED,
+                    allowed_providers=("local-model",),
+                ),
+                context=context,
+                at=NOW,
+            ).matches
+        )
+        none_material = self.action_material(provider=None)
+        self.assertIn(
+            "provider",
+            policy_grant_matches(
+                allowed_grant,
+                material=none_material,
+                registry_entry=self.registry_entry(none_material),
+                context=context,
+                at=NOW,
+            ).reasons,
+        )
 
     def test_unknown_schema_keywords_and_t4_capabilities_fail_closed(
         self,
@@ -666,6 +1113,7 @@ class AuthorizationContractTests(unittest.TestCase):
         project_id = uuid4()
         material = self.action_material()
         grant = self.grant(project_id, material)
+        registry_entry = self.registry_entry(material)
         unsafe_constraints = grant.constraints.model_copy(
             update={"args_schema": {"oneOf": [{"type": "object"}]}}
         )
@@ -682,22 +1130,53 @@ class AuthorizationContractTests(unittest.TestCase):
             policy_grant_matches(
                 unsafe_grant,
                 material=material,
+                registry_entry=registry_entry,
                 context=context,
                 at=NOW,
             ).reasons,
         )
+        with self.assertRaises(ValidationError):
+            CapabilityConstraints(
+                args_schema={
+                    "type": "object",
+                    "properties": {
+                        "destination": {
+                            "type": "string",
+                            "minLength": "bad",
+                        }
+                    },
+                    "additionalProperties": False,
+                },
+                allowed_data_classes=("public",),
+                per_action_budget=budget(),
+                cumulative_budget=budget(),
+                max_concurrency=1,
+                max_uses=1,
+                valid_from=NOW,
+                expires_at=NOW + timedelta(minutes=1),
+            )
 
         t4_material = self.action_material(
-            capability=VersionedRef(id="export.publish", version="1"),
+            capability=CapabilityRef(
+                id="export.publish",
+                version="1",
+                digest=HASH,
+            ),
             risk_tier="T4",
             reversible=False,
         )
         t4_grant = self.grant(project_id, t4_material)
+        t4_registry_entry = self.registry_entry(
+            t4_material,
+            authorization_mode=CapabilityAuthorizationMode.ONE_TIME_APPROVAL,
+            grantable=False,
+        )
         self.assertIn(
             "capability_requires_one_time_approval",
             policy_grant_matches(
                 t4_grant,
                 material=t4_material,
+                registry_entry=t4_registry_entry,
                 context=context,
                 at=NOW,
             ).reasons,

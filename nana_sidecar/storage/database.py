@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,14 +97,70 @@ def _validate_existing_schema(
 
 def _open(path: str | Path) -> sqlite3.Connection:
     connection = sqlite3.connect(Path(path))
-    _configure(connection)
-    return connection
+    try:
+        _configure(connection)
+        return connection
+    except BaseException:
+        connection.close()
+        raise
+
+
+def _open_after_readonly_probe(path: str | Path) -> sqlite3.Connection:
+    """Reopen a WAL database after a read-only validation on Windows.
+
+    An abruptly terminated owner can leave SQLite's WAL/SHM teardown racing
+    the first writable reopen.  The Workspace OS lock is already held by the
+    caller, so a short retry is safe and cannot admit a second owner.  Only the
+    transient ``disk I/O error`` is retried; every other SQLite failure remains
+    fail-closed.
+    """
+
+    delays = (0.01, 0.025, 0.05, 0.1, 0.2)
+    for attempt in range(len(delays) + 1):
+        try:
+            return _open(path)
+        except sqlite3.OperationalError as exc:
+            if "disk I/O error" not in str(exc).lower() or attempt == len(delays):
+                raise
+            time.sleep(delays[attempt])
+    raise AssertionError("unreachable")
+
+
+def _open_readonly(path: str | Path) -> sqlite3.Connection:
+    target = Path(path).resolve()
+    connection = sqlite3.connect(f"{target.as_uri()}?mode=ro", uri=True)
+    try:
+        _configure(connection)
+        connection.execute("PRAGMA query_only = ON")
+        return connection
+    except BaseException:
+        connection.close()
+        raise
 
 
 def connect_database(path: str | Path) -> sqlite3.Connection:
     """Open and verify a previously initialized vNext database."""
 
     connection = _open(path)
+    try:
+        current = _current_version(connection)
+        _validate_existing_schema(
+            connection,
+            current,
+            _user_tables(connection),
+        )
+        if current == 0:
+            raise IncompatibleDatabaseError("vNext database is not initialized")
+    except Exception:
+        connection.close()
+        raise
+    return connection
+
+
+def connect_database_readonly(path: str | Path) -> sqlite3.Connection:
+    """Open a verified database without enabling writes."""
+
+    connection = _open_readonly(path)
     try:
         current = _current_version(connection)
         _validate_existing_schema(
@@ -135,9 +192,7 @@ def plan_database_migrations(
     if not target.exists() or target.stat().st_size == 0:
         current = 0
     else:
-        uri = f"{target.resolve().as_uri()}?mode=ro"
-        connection = sqlite3.connect(uri, uri=True)
-        _configure(connection)
+        connection = _open_readonly(target)
         try:
             current = _current_version(connection)
             _validate_existing_schema(connection, current, _user_tables(connection))
@@ -178,10 +233,20 @@ def initialize_database(path: str | Path) -> sqlite3.Connection:
     """Apply all pending migrations and return a verified WAL connection."""
 
     target = Path(path)
+    if target.exists() and target.stat().st_size > 0:
+        readonly = _open_readonly(target)
+        try:
+            current = _current_version(readonly)
+            _validate_existing_schema(
+                readonly,
+                current,
+                _user_tables(readonly),
+            )
+        finally:
+            readonly.close()
     target.parent.mkdir(parents=True, exist_ok=True)
-    connection = _open(target)
+    connection = _open_after_readonly_probe(target)
     try:
-        connection.execute("PRAGMA journal_mode = WAL")
         current = _current_version(connection)
         _validate_existing_schema(connection, current, _user_tables(connection))
         for migration in migrations_after(current, SCHEMA_VERSION):
@@ -191,6 +256,7 @@ def initialize_database(path: str | Path) -> sqlite3.Connection:
             _current_version(connection),
             _user_tables(connection),
         )
+        connection.execute("PRAGMA journal_mode = WAL")
     except Exception:
         connection.close()
         raise

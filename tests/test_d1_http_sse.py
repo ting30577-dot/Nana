@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import logging
 import tempfile
 import unittest
+from dataclasses import asdict
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+import traceback
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -18,6 +21,7 @@ from httpx import ASGITransport, AsyncClient
 from nana_sidecar.runtime_app import create_runtime_app
 from nana_sidecar.sse import LocalSession, SQLiteEventStream
 from nana_sidecar.storage import connect_database, initialize_database
+from nana_sidecar.storage.workspace_lock import WorkspaceRuntime
 
 
 NOW = "2026-07-30T00:00:00Z"
@@ -167,7 +171,10 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.database_path = Path(self.tempdir.name) / "nana.db"
-        self.connection = initialize_database(self.database_path)
+        self.workspace = WorkspaceRuntime(self.database_path)
+        self.workspace.start()
+        self.connection = self.workspace.connection
+        self.assertIsNotNone(self.connection)
         self.session = LocalSession(token=TOKEN, origin=ORIGIN)
         self.stream = SQLiteEventStream(
             self.database_path,
@@ -175,12 +182,12 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
             batch_size=2,
         )
         self.app = create_runtime_app(
-            event_stream=self.stream,
+            workspace_runtime=self.workspace,
             local_session=self.session,
         )
 
     async def asyncTearDown(self) -> None:
-        self.connection.close()
+        self.workspace.close()
         self.tempdir.cleanup()
 
     def _insert_event(self, revision: int) -> int:
@@ -391,7 +398,7 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
         real_connection = connect_database(self.database_path)
         tracked_connection = MagicMock(wraps=real_connection)
         with patch(
-            "nana_sidecar.sse.connect_database",
+            "nana_sidecar.sse.connect_database_readonly",
             return_value=tracked_connection,
         ):
             opened = await self._open_stream(last_event_id=0)
@@ -497,15 +504,15 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(health.status_code, 200)
-        self.assertEqual(handshake.status_code, 200)
-        self.assertEqual(openapi.status_code, 200)
+        self.assertEqual(handshake.status_code, 401)
+        self.assertEqual(openapi.status_code, 401)
         self.assertEqual(anonymous_mutation.status_code, 401)
         self.assertEqual(anonymous_mutation_slash.status_code, 401)
         self.assertEqual(anonymous_contracts_slash.status_code, 401)
         self.assertEqual(anonymous_unknown.status_code, 401)
         self.assertEqual(authenticated_mutation.status_code, 200)
         self.assertEqual(authenticated_mutation.json(), {"accepted": True})
-        self.assertEqual(authenticated_contracts_slash.status_code, 200)
+        self.assertEqual(authenticated_contracts_slash.status_code, 404)
         self.assertEqual(authenticated_unknown.status_code, 404)
 
     async def test_ambiguous_security_and_cursor_headers_are_rejected(
@@ -592,25 +599,60 @@ class D1HttpSSETests(unittest.IsolatedAsyncioTestCase):
             "not-an-origin",
         ):
             with self.subTest(invalid=invalid):
-                with self.assertRaisesRegex(ValueError, "loopback"):
+                with self.assertRaisesRegex(ValueError, "127.0.0.1"):
                     LocalSession(token=TOKEN, origin=invalid)
 
         with self.assertRaisesRegex(ValueError, "ASCII"):
             LocalSession(token="密" * 32, origin=ORIGIN)
 
+        session = LocalSession(token=TOKEN, origin=ORIGIN)
+        self.assertNotIn("d1-session", repr(session))
+        self.assertNotIn("d1-session", str(session))
+        self.assertNotIn(TOKEN, format(session))
+        self.assertNotIn(TOKEN, f"{session!r}")
+        self.assertEqual(str(session.token), "**********")
+        self.assertNotIn(TOKEN, json.dumps(asdict(session), default=str))
+        self.assertNotIn(
+            TOKEN,
+            json.dumps({"session": session}, default=str),
+        )
+
+        logger = logging.getLogger("nana_sidecar.tests.session")
+        with self.assertLogs(logger, level="INFO") as captured:
+            logger.info("session=%s session_repr=%r", session, session)
+        self.assertNotIn(TOKEN, "\n".join(captured.output))
+
+        try:
+            def explode() -> None:
+                session = LocalSession(token=TOKEN, origin=ORIGIN)
+                raise RuntimeError("boom")
+
+            explode()
+        except RuntimeError:
+            trace = traceback.format_exc()
+        self.assertNotIn(TOKEN, trace)
+
     async def test_stream_and_session_configuration_fail_closed_as_pair(
         self,
     ) -> None:
-        with self.assertRaisesRegex(ValueError, "configured together"):
-            create_runtime_app(event_stream=self.stream)
-        with self.assertRaisesRegex(ValueError, "configured together"):
-            create_runtime_app(local_session=self.session)
+        with self.assertRaises(TypeError):
+            create_runtime_app(local_session=self.session)  # type: ignore[call-arg]
+        with self.assertRaises(TypeError):
+            create_runtime_app(workspace_runtime=self.workspace)  # type: ignore[call-arg]
 
         async with AsyncClient(
             transport=ASGITransport(app=self.app),
             base_url=ORIGIN,
         ) as client:
-            schema = (await client.get("/openapi.json")).json()
+            schema = (
+                await client.get(
+                    "/openapi.json",
+                    headers={
+                        "Origin": ORIGIN,
+                        "Authorization": f"Bearer {TOKEN}",
+                    },
+                )
+            ).json()
         self.assertIn("/api/v1/events", schema["paths"])
 
 

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "matrix_version": "v0.3.0-dev-d2-06-security-matrices-1",
+  "seed": "nana-d2-security-matrices-2026-08-01",
+  "evidence_classification": {
+    "executed_scenarios": 460,
+    "d2_effective_scenarios": 360,
+    "stable_full_surface_gate_complete": false,
+    "deferred_surfaces": ["prompt_runtime", "prompt_log", "prompt_export", "credential_prompt", "credential_log", "credential_export"],
+    "note": "Prompt-like strings exercise deterministic frozen-args containment only. Credential canaries exercise child env/stdout/stderr only. Neither is claimed as the future stable prompt/export gate."
+  },
+  "requirements": {
+    "path_symlink_junction_parameter": {
+      "minimum_cases": 200,
+      "generated_path_cases": 120,
+      "generated_parameter_cases": 80,
+      "manual_categories": ["symlink", "junction"],
+      "distinct_assertion_families": 13
+    },
+    "prompt_injection": {
+      "minimum_cases": 100,
+      "applicable_boundary": "frozen test_id authorization; no prompt executor exists in D2",
+      "evidence_status": "supplemental_args_containment_not_prompt_runtime_gate",
+      "counted_in_d2_effective_scenarios": false,
+      "distinct_payload_families": 5
+    },
+    "credential_canary": {
+      "minimum_cases": 50,
+      "synthetic_variable": "NANA_D2_SYNTHETIC_CANARY",
+      "applicable_surfaces": ["child_env", "stdout", "stderr"],
+      "absent_d2_surfaces": ["prompt", "log", "export"],
+      "evidence_status": "partial_child_process_surface",
+      "stable_full_surface_gate_complete": false
+    },
+    "approval_grant": {
+      "minimum_cases": 50,
+      "grant_cases": 25,
+      "approval_cases": 25,
+      "distinct_grant_variants": 12,
+      "distinct_approval_variants": 10
+    },
+    "runtime_cancel": {
+      "minimum_cases": 30,
+      "poll_counts": [0, 1, 2, 3, 4],
+      "output_caps": [64, 1024, 4096],
+      "timeout_seconds": [2, 5],
+      "tree_exit_deadline_seconds": 5,
+      "descendant_probe": true,
+      "windows_creation_sequence": ["CREATE_SUSPENDED", "AssignProcessToJobObject", "ResumeThread"]
+    },
+    "malicious_or_oversized_artifact": {
+      "minimum_cases": 30,
+      "variants": [
+        "blob_hash_mismatch",
+        "wrong_media_type",
+        "unavailable_state",
+        "invalid_utf8",
+        "non_object_json",
+        "args_content_mismatch",
+        "oversized_json"
+      ],
+      "distinct_variants": 7
+    }
+  }
+}

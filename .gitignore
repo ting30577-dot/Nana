@@ -9,6 +9,13 @@ __pycache__/
 venv/
 env/
 node_modules/
+test-results/
+playwright-report/
+
+# Local handoff bundles and recoverable Vault sync backups are not source.
+/Nana_v0.3.0-dev-D3_package_20260809.zip
+/Nana_v0.3.0-dev-D3_package_20260809/
+/backups/
 
 .idea/
 .vscode/

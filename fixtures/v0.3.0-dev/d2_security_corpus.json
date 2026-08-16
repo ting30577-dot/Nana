@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "corpus_version": "v0.3.0-dev-d2-06",
+  "seed": "nana-d2-locked-security-corpus-2026-08-01",
+  "required_categories": [
+    "unregistered_capability",
+    "capability_digest_mismatch",
+    "args_schema_mismatch",
+    "path_escape",
+    "symlink",
+    "junction",
+    "shell_metacharacter",
+    "unauthorized_network",
+    "provider_mismatch",
+    "child_timeout",
+    "cancel_race",
+    "oversized_output",
+    "action_replay",
+    "approval_expired",
+    "approval_content_changed",
+    "approval_replay",
+    "never_grant_bypass",
+    "process_target_escape",
+    "env_secret_leak",
+    "runtime_read_scope_escape",
+    "runtime_write_scope_escape",
+    "runtime_network_scope_escape",
+    "runtime_process_scope_escape"
+  ],
+  "cases": [
+    {
+      "id": "d2-sec-001-unregistered-capability",
+      "category": "unregistered_capability",
+      "layer": "admission",
+      "evaluator": "admission_unregistered_capability",
+      "expected_reason": "E_CAPABILITY_UNREGISTERED",
+      "risk_class": "T3",
+      "trace_ref": "admission.registry_lookup"
+    },
+    {
+      "id": "d2-sec-002-capability-digest-mismatch",
+      "category": "capability_digest_mismatch",
+      "layer": "authorization",
+      "evaluator": "authorization_capability_digest_mismatch",
+      "expected_reason": "capability_registry",
+      "risk_class": "T3",
+      "trace_ref": "authorization.registry_digest"
+    },
+    {
+      "id": "d2-sec-003-args-schema-mismatch",
+      "category": "args_schema_mismatch",
+      "layer": "authorization",
+      "evaluator": "authorization_args_schema_mismatch",
+      "expected_reason": "capability_registry_args",
+      "risk_class": "T1",
+      "trace_ref": "authorization.safe_json_schema"
+    },
+    {
+      "id": "d2-sec-004-path-parent-escape",
+      "category": "path_escape",
+      "layer": "locator",
+      "evaluator": "locator_parent_escape",
+      "expected_reason": "locator paths must be normalized relative logical paths",
+      "risk_class": "T4-like",
+      "trace_ref": "locator.logical_path"
+    },
+    {
+      "id": "d2-sec-005-symlink-final-blob",
+      "category": "symlink",
+      "layer": "artifact_store",
+      "evaluator": "artifact_final_symlink",
+      "expected_reason": "non-regular final blob",
+      "risk_class": "T4-like",
+      "trace_ref": "artifact.promote.final_blob"
+    },
+    {
+      "id": "d2-sec-006-junction-artifact-root",
+      "category": "junction",
+      "layer": "artifact_store",
+      "evaluator": "artifact_ancestor_junction",
+      "expected_reason": "reparse point",
+      "risk_class": "T4-like",
+      "trace_ref": "artifact.validate_layout"
+    },
+    {
+      "id": "d2-sec-007-shell-metacharacter-test-id",
+      "category": "shell_metacharacter",
+      "layer": "authorization",
+      "evaluator": "authorization_shell_metacharacter_args",
+      "expected_reason": "capability_registry_args",
+      "risk_class": "T4-like",
+      "trace_ref": "capability.args.allowlist"
+    },
+    {
+      "id": "d2-sec-008-unauthorized-network",
+      "category": "unauthorized_network",
+      "layer": "authorization",
+      "evaluator": "authorization_unauthorized_network",
+      "expected_reason": "capability_registry_network_scope",
+      "risk_class": "T4-like",
+      "trace_ref": "capability.network_scope"
+    },
+    {
+      "id": "d2-sec-009-provider-mismatch",
+      "category": "provider_mismatch",
+      "layer": "authorization",
+      "evaluator": "authorization_provider_mismatch",
+      "expected_reason": "provider",
+      "risk_class": "T3",
+      "trace_ref": "capability.provider_mode"
+    },
+    {
+      "id": "d2-sec-010-child-timeout",
+      "category": "child_timeout",
+      "layer": "executor",
+      "evaluator": "executor_timeout",
+      "expected_reason": "timed_out",
+      "risk_class": "T1",
+      "trace_ref": "executor.timeout"
+    },
+    {
+      "id": "d2-sec-011-cancel-race",
+      "category": "cancel_race",
+      "layer": "executor",
+      "evaluator": "executor_cancel_race",
+      "expected_reason": "cancelled",
+      "risk_class": "T3",
+      "trace_ref": "executor.running_cancel"
+    },
+    {
+      "id": "d2-sec-012-oversized-output",
+      "category": "oversized_output",
+      "layer": "executor",
+      "evaluator": "executor_oversized_output",
+      "expected_reason": "output_truncated",
+      "risk_class": "T2",
+      "trace_ref": "executor.output_cap"
+    },
+    {
+      "id": "d2-sec-013-action-replay",
+      "category": "action_replay",
+      "layer": "scheduler",
+      "evaluator": "scheduler_action_replay",
+      "expected_reason": "E_ACTION_NOT_AUTHORIZED",
+      "risk_class": "T3",
+      "trace_ref": "scheduler.claim_state"
+    },
+    {
+      "id": "d2-sec-014-approval-expired",
+      "category": "approval_expired",
+      "layer": "authorization",
+      "evaluator": "authorization_approval_expired",
+      "expected_reason": "expired",
+      "risk_class": "T3",
+      "trace_ref": "approval.expires_at"
+    },
+    {
+      "id": "d2-sec-015-approval-content-changed",
+      "category": "approval_content_changed",
+      "layer": "authorization",
+      "evaluator": "authorization_approval_content_changed",
+      "expected_reason": "action_hash",
+      "risk_class": "T3",
+      "trace_ref": "approval.subject_hash"
+    },
+    {
+      "id": "d2-sec-016-approval-replay",
+      "category": "approval_replay",
+      "layer": "authorization",
+      "evaluator": "authorization_approval_replay",
+      "expected_reason": "uses",
+      "risk_class": "T3",
+      "trace_ref": "approval.allowed_uses"
+    },
+    {
+      "id": "d2-sec-017-never-grant-publish",
+      "category": "never_grant_bypass",
+      "layer": "authorization",
+      "evaluator": "authorization_never_grant_bypass",
+      "expected_reason": "capability_requires_one_time_approval",
+      "risk_class": "T4",
+      "trace_ref": "policy.never_grant"
+    },
+    {
+      "id": "d2-sec-018-process-target-escape",
+      "category": "process_target_escape",
+      "layer": "authorization",
+      "evaluator": "authorization_process_target_escape",
+      "expected_reason": "capability_registry_process_scope",
+      "risk_class": "T4-like",
+      "trace_ref": "capability.process_targets"
+    },
+    {
+      "id": "d2-sec-019-env-secret-leak",
+      "category": "env_secret_leak",
+      "layer": "executor",
+      "evaluator": "executor_empty_environment",
+      "expected_reason": "env_empty",
+      "risk_class": "T4-like",
+      "trace_ref": "executor.env"
+    },
+    {
+      "id": "d2-sec-020-runtime-read-scope-escape",
+      "category": "runtime_read_scope_escape",
+      "layer": "executor_runtime",
+      "evaluator": "runtime_read_scope_guard",
+      "expected_reason": "runtime_guard:outside-read",
+      "risk_class": "T4-like",
+      "trace_ref": "executor.runtime.read_roots"
+    },
+    {
+      "id": "d2-sec-021-runtime-write-scope-escape",
+      "category": "runtime_write_scope_escape",
+      "layer": "executor_runtime",
+      "evaluator": "runtime_write_scope_guard",
+      "expected_reason": "runtime_guard:write",
+      "risk_class": "T4-like",
+      "trace_ref": "executor.runtime.write_roots"
+    },
+    {
+      "id": "d2-sec-022-runtime-network-scope-escape",
+      "category": "runtime_network_scope_escape",
+      "layer": "executor_runtime",
+      "evaluator": "runtime_network_scope_guard",
+      "expected_reason": "runtime_guard:network",
+      "risk_class": "T4-like",
+      "trace_ref": "executor.runtime.network"
+    },
+    {
+      "id": "d2-sec-023-runtime-process-scope-escape",
+      "category": "runtime_process_scope_escape",
+      "layer": "executor_runtime",
+      "evaluator": "runtime_process_scope_guard",
+      "expected_reason": "runtime_guard:child-process",
+      "risk_class": "T4-like",
+      "trace_ref": "executor.runtime.process"
+    }
+  ]
+}

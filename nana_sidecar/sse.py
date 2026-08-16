@@ -8,16 +8,17 @@ import json
 import math
 import sqlite3
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import HTTPException
+from pydantic import SecretStr
 from starlette.datastructures import Headers
 
 from nana_sidecar.contracts.domain import Event
-from nana_sidecar.storage import connect_database
+from nana_sidecar.storage import connect_database_readonly
 
 
 _MAX_SQLITE_INTEGER = (1 << 63) - 1
@@ -63,27 +64,38 @@ def parse_last_event_id(value: str | None) -> int:
 class LocalSession:
     """One in-memory local session shared by API and SSE requests."""
 
-    token: str
+    token: SecretStr | str = field(repr=False)
     origin: str
+    authority: str = field(init=False)
 
     def __post_init__(self) -> None:
+        token_value = (
+            self.token.get_secret_value()
+            if isinstance(self.token, SecretStr)
+            else self.token
+        )
         try:
-            encoded_token = self.token.encode("ascii")
+            encoded_token = token_value.encode("ascii")
         except UnicodeEncodeError as exc:
             raise ValueError(
                 "local session token must contain only ASCII characters"
             ) from exc
         if len(encoded_token) < 32:
             raise ValueError("local session token must be at least 32 bytes")
+        object.__setattr__(self, "token", SecretStr(token_value))
         valid_origin = False
         try:
             parsed = urlsplit(self.origin)
             host = parsed.hostname
             port = parsed.port
+            authority = parsed.netloc
             valid_origin = (
-                parsed.scheme in {"http", "https"}
-                and host is not None
+                parsed.scheme == "http"
+                and host == "127.0.0.1"
                 and port is not None
+                and 1 <= port <= 65535
+                and authority == f"127.0.0.1:{port}"
+                and str(port) == authority.rsplit(":", 1)[1]
                 and parsed.username is None
                 and parsed.password is None
                 and parsed.path == ""
@@ -95,11 +107,17 @@ class LocalSession:
             valid_origin = False
         if not valid_origin:
             raise ValueError(
-                "local session origin must be an explicit loopback HTTP(S) "
-                "origin with a port"
+                "local session origin must be http://127.0.0.1:<port> with "
+                "a canonical decimal port"
             )
+        object.__setattr__(self, "authority", authority)
 
-    def authorize(self, headers: Headers) -> None:
+    def authorize(
+        self,
+        headers: Headers,
+        *,
+        allow_same_origin_browser_fetch: bool = False,
+    ) -> None:
         authorization_values = headers.getlist("authorization")
         authorization = (
             authorization_values[0]
@@ -125,7 +143,7 @@ class LocalSession:
             candidate_bytes is None
             or not hmac.compare_digest(
                 candidate_bytes,
-                self.token.encode("ascii"),
+                self.token.get_secret_value().encode("ascii"),
             )
         ):
             raise HTTPException(
@@ -134,14 +152,25 @@ class LocalSession:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         origin_values = headers.getlist("origin")
-        if (
-            len(origin_values) != 1
-            or origin_values[0] != self.origin
+        browser_same_origin = (
+            allow_same_origin_browser_fetch
+            and not origin_values
+            and headers.getlist("sec-fetch-site") == ["same-origin"]
+            and headers.getlist("sec-fetch-mode") == ["cors"]
+            and headers.getlist("sec-fetch-dest") == ["empty"]
+        )
+        if not browser_same_origin and (
+            len(origin_values) != 1 or origin_values[0] != self.origin
         ):
             raise HTTPException(
                 status_code=403,
                 detail="request Origin is not the active local session Origin",
             )
+
+    def __str__(self) -> str:
+        return f"LocalSession(origin={self.origin!r})"
+
+    __repr__ = __str__
 
 
 class SQLiteEventStream:
@@ -242,10 +271,15 @@ class SQLiteEventStream:
             f"data: {data}\n\n"
         )
 
-    async def iter_sse(self, *, after_id: int) -> AsyncIterator[str]:
+    async def iter_sse(
+        self,
+        *,
+        after_id: int,
+        stop_event: asyncio.Event | None = None,
+    ) -> AsyncIterator[str]:
         """Continuously catch up and then poll live without changing cursors."""
 
-        connection = connect_database(self.database_path)
+        connection = connect_database_readonly(self.database_path)
         cursor = after_id
         try:
             while True:
@@ -255,6 +289,16 @@ class SQLiteEventStream:
                         cursor = event.id
                         yield self._format_event(event)
                     continue
-                await asyncio.sleep(self.poll_interval)
+                if stop_event is None:
+                    await asyncio.sleep(self.poll_interval)
+                    continue
+                try:
+                    await asyncio.wait_for(
+                        stop_event.wait(),
+                        timeout=self.poll_interval,
+                    )
+                except asyncio.TimeoutError:
+                    continue
+                return
         finally:
             connection.close()

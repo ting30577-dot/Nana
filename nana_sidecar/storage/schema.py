@@ -271,7 +271,8 @@ CREATE TABLE events (
             'run.budget_exceeded', 'run.orphaned',
             'plan.step.started', 'plan.step.completed', 'plan.step.failed',
             'action.proposed', 'action.authorized', 'action.started',
-            'action.output', 'action.completed', 'action.effect_unknown',
+            'action.output', 'action.completed', 'action.cancelled',
+            'action.effect_unknown',
             'artifact.staged', 'artifact.committed', 'artifact.reconciled',
             'budget.updated', 'budget.threshold_reached',
             'policy_grant.created', 'policy_grant.revoked',
@@ -551,3 +552,622 @@ SCHEMA_V1_HASH = (
 
 # Compatibility alias for callers that only need the initial SQL text.
 SCHEMA_SQL = SCHEMA_V1_SQL
+
+SCHEMA_V2_SQL = r"""
+CREATE TEMP TABLE __d2_00_guard (
+    value INTEGER NOT NULL CHECK (value = 0)
+) STRICT;
+
+INSERT INTO __d2_00_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM actions
+    WHERE executable_digest IS NULL
+       OR length(trim(executable_digest)) = 0
+);
+
+INSERT INTO __d2_00_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM policy_grants
+    WHERE executable_digest IS NULL
+       OR length(trim(executable_digest)) = 0
+);
+
+INSERT INTO __d2_00_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM approvals
+    WHERE allowed_uses <> 1
+       OR json_extract(capability_json, '$.digest') IS NULL
+       OR length(trim(json_extract(capability_json, '$.digest'))) = 0
+);
+
+INSERT INTO __d2_00_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM action_receipts
+);
+
+DROP TABLE __d2_00_guard;
+
+CREATE TABLE capability_registry_entries (
+    capability_id TEXT NOT NULL,
+    capability_version TEXT NOT NULL,
+    executable_digest TEXT NOT NULL,
+    args_schema_json TEXT NOT NULL CHECK (json_valid(args_schema_json)),
+    risk_tier TEXT NOT NULL CHECK (
+        risk_tier IN ('T0', 'T1', 'T2', 'T3', 'T4')
+    ),
+    reversible INTEGER NOT NULL CHECK (reversible IN (0, 1)),
+    authorization_mode TEXT NOT NULL CHECK (
+        authorization_mode IN (
+            'auto_policy',
+            'policy_grant',
+            'one_time_approval'
+        )
+    ),
+    grantable INTEGER NOT NULL CHECK (grantable IN (0, 1)),
+    provider_mode TEXT NOT NULL CHECK (
+        provider_mode IN ('forbidden', 'optional', 'required')
+    ),
+    allowed_providers_json TEXT NOT NULL CHECK (json_valid(allowed_providers_json)),
+    contract_digest TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (capability_id, capability_version, executable_digest)
+) STRICT;
+
+CREATE TABLE approval_consumptions (
+    approval_id TEXT PRIMARY KEY REFERENCES approvals(id) ON DELETE RESTRICT,
+    action_id TEXT NOT NULL UNIQUE REFERENCES actions(id) ON DELETE RESTRICT,
+    event_id INTEGER UNIQUE REFERENCES events(id) ON DELETE RESTRICT,
+    consumed_at TEXT NOT NULL
+) STRICT;
+
+ALTER TABLE action_receipts ADD COLUMN authorized_effects_json TEXT NOT NULL
+    DEFAULT '{"reads":[],"writes":[],"network":[],"processes":[]}'
+    CHECK (json_valid(authorized_effects_json));
+
+ALTER TABLE action_receipts ADD COLUMN effect_violation INTEGER NOT NULL
+    DEFAULT 0
+    CHECK (effect_violation IN (0, 1));
+
+CREATE TRIGGER actions_require_executable_digest_insert
+BEFORE INSERT ON actions
+WHEN NEW.executable_digest IS NULL
+   OR length(trim(NEW.executable_digest)) = 0
+BEGIN
+    SELECT RAISE(ABORT, 'actions require executable_digest');
+END;
+
+CREATE TRIGGER actions_require_executable_digest_update
+BEFORE UPDATE ON actions
+WHEN NEW.executable_digest IS NULL
+   OR length(trim(NEW.executable_digest)) = 0
+BEGIN
+    SELECT RAISE(ABORT, 'actions require executable_digest');
+END;
+
+CREATE TRIGGER policy_grants_require_executable_digest_insert
+BEFORE INSERT ON policy_grants
+WHEN NEW.executable_digest IS NULL
+   OR length(trim(NEW.executable_digest)) = 0
+BEGIN
+    SELECT RAISE(ABORT, 'policy_grants require executable_digest');
+END;
+
+CREATE TRIGGER policy_grants_require_executable_digest_update
+BEFORE UPDATE ON policy_grants
+WHEN NEW.executable_digest IS NULL
+   OR length(trim(NEW.executable_digest)) = 0
+BEGIN
+    SELECT RAISE(ABORT, 'policy_grants require executable_digest');
+END;
+
+CREATE TRIGGER approvals_require_digest_and_one_use_insert
+BEFORE INSERT ON approvals
+WHEN NEW.allowed_uses <> 1
+   OR json_extract(NEW.capability_json, '$.digest') IS NULL
+   OR length(trim(json_extract(NEW.capability_json, '$.digest'))) = 0
+BEGIN
+    SELECT RAISE(ABORT, 'approvals require digest and allowed_uses = 1');
+END;
+
+CREATE TRIGGER approvals_require_digest_and_one_use_update
+BEFORE UPDATE ON approvals
+WHEN NEW.allowed_uses <> 1
+   OR json_extract(NEW.capability_json, '$.digest') IS NULL
+   OR length(trim(json_extract(NEW.capability_json, '$.digest'))) = 0
+BEGIN
+    SELECT RAISE(ABORT, 'approvals require digest and allowed_uses = 1');
+END;
+
+CREATE TRIGGER action_receipts_reconcile_effect_violation_insert
+BEFORE INSERT ON action_receipts
+WHEN NEW.effect_violation = 1
+   AND NEW.result <> 'effect_unknown'
+BEGIN
+    SELECT RAISE(ABORT, 'effect_violation requires effect_unknown result');
+END;
+
+CREATE TRIGGER action_receipts_reconcile_effect_violation_update
+BEFORE UPDATE ON action_receipts
+WHEN NEW.effect_violation = 1
+   AND NEW.result <> 'effect_unknown'
+BEGIN
+    SELECT RAISE(ABORT, 'effect_violation requires effect_unknown result');
+END;
+
+CREATE TRIGGER events_are_append_only_update
+BEFORE UPDATE ON events
+BEGIN
+    SELECT RAISE(ABORT, 'events are append-only');
+END;
+
+CREATE TRIGGER events_are_append_only_delete
+BEFORE DELETE ON events
+BEGIN
+    SELECT RAISE(ABORT, 'events are append-only');
+END;
+
+CREATE TRIGGER outbox_events_are_retain_only_delete
+BEFORE DELETE ON outbox_events
+BEGIN
+    SELECT RAISE(ABORT, 'outbox events are retained');
+END;
+
+CREATE TRIGGER outbox_events_event_id_immutable
+BEFORE UPDATE OF event_id ON outbox_events
+BEGIN
+    SELECT RAISE(ABORT, 'outbox event_id is immutable');
+END;
+
+CREATE INDEX idx_capability_registry_entries_capability
+    ON capability_registry_entries(capability_id, capability_version);
+CREATE INDEX idx_approval_consumptions_action ON approval_consumptions(action_id);
+CREATE INDEX idx_approval_consumptions_event ON approval_consumptions(event_id);
+"""
+
+SCHEMA_V2_HASH = (
+    "sha256:" + hashlib.sha256(SCHEMA_V2_SQL.encode("utf-8")).hexdigest()
+)
+
+SCHEMA_V3_SQL = r"""
+DROP TRIGGER events_are_append_only_update;
+DROP TRIGGER events_are_append_only_delete;
+DROP TRIGGER outbox_events_are_retain_only_delete;
+DROP TRIGGER outbox_events_event_id_immutable;
+
+ALTER TABLE approval_consumptions RENAME TO approval_consumptions_v2;
+ALTER TABLE outbox_events RENAME TO outbox_events_v2;
+ALTER TABLE events RENAME TO events_v2;
+
+CREATE TABLE events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    aggregate_type TEXT NOT NULL,
+    aggregate_id TEXT NOT NULL,
+    aggregate_version INTEGER NOT NULL CHECK (aggregate_version >= 1),
+    run_id TEXT REFERENCES runs(id) ON DELETE RESTRICT,
+    run_seq INTEGER CHECK (run_seq IS NULL OR run_seq >= 1),
+    action_id TEXT REFERENCES actions(id) ON DELETE RESTRICT,
+    actor_json TEXT NOT NULL CHECK (json_valid(actor_json)),
+    causation_id TEXT,
+    correlation_id TEXT,
+    type TEXT NOT NULL CHECK (
+        type IN (
+            'workspace.created',
+            'project.created', 'project.status_changed',
+            'inquiry.created', 'inquiry.status_changed',
+            'plan.proposed', 'plan.revised', 'plan.status_changed',
+            'run.created', 'run.started', 'run.heartbeat', 'run.paused',
+            'run.cancelled', 'run.timed_out', 'run.failed', 'run.succeeded',
+            'run.budget_exceeded', 'run.orphaned',
+            'plan.step.started', 'plan.step.completed', 'plan.step.failed',
+            'action.proposed', 'action.authorized', 'action.started',
+            'action.output', 'action.completed', 'action.cancelled',
+            'action.effect_unknown',
+            'artifact.staged', 'artifact.committed', 'artifact.reconciled',
+            'budget.updated', 'budget.threshold_reached',
+            'policy_grant.created', 'policy_grant.revoked',
+            'policy_grant.expired',
+            'approval.requested', 'approval.decided', 'approval.expired',
+            'resource.registered', 'locator.created', 'claim.created',
+            'evidence.attached', 'hypothesis.created', 'finding.drafted',
+            'relation.created', 'export.published'
+        )
+    ),
+    payload_json TEXT CHECK (payload_json IS NULL OR json_valid(payload_json)),
+    payload_artifact_id TEXT REFERENCES artifacts(id) ON DELETE RESTRICT,
+    occurred_at TEXT NOT NULL,
+    CHECK (
+        (payload_json IS NOT NULL AND payload_artifact_id IS NULL)
+        OR (payload_json IS NULL AND payload_artifact_id IS NOT NULL)
+    ),
+    CHECK (
+        type <> 'artifact.staged'
+        OR COALESCE((
+            aggregate_type = 'artifact'
+            AND payload_json IS NOT NULL
+            AND json_type(payload_json, '$') = 'object'
+            AND json_extract(payload_json, '$.artifact_id') = aggregate_id
+            AND json_extract(payload_json, '$.state') = 'staged'
+            AND json_type(payload_json, '$.temp_ref') = 'text'
+            AND length(trim(json_extract(payload_json, '$.temp_ref'))) > 0
+            AND json_type(payload_json, '$.blob_hash') = 'text'
+            AND json_type(payload_json, '$.size') = 'integer'
+            AND json_extract(payload_json, '$.size') >= 0
+            AND json_type(payload_json, '$.media_type') = 'text'
+            AND length(trim(json_extract(payload_json, '$.media_type'))) > 0
+        ), 0)
+    ),
+    CHECK (
+        type <> 'artifact.committed'
+        OR COALESCE((
+            aggregate_type = 'artifact'
+            AND payload_json IS NOT NULL
+            AND json_type(payload_json, '$') = 'object'
+            AND json_extract(payload_json, '$.artifact_id') = aggregate_id
+            AND json_extract(payload_json, '$.state') = 'available'
+            AND json_type(payload_json, '$.blob_hash') = 'text'
+            AND json_type(payload_json, '$.size') = 'integer'
+            AND json_extract(payload_json, '$.size') >= 0
+            AND json_type(payload_json, '$.media_type') = 'text'
+            AND length(trim(json_extract(payload_json, '$.media_type'))) > 0
+        ), 0)
+    ),
+    CHECK (
+        type <> 'artifact.reconciled'
+        OR COALESCE((
+            aggregate_type = 'artifact'
+            AND payload_json IS NOT NULL
+            AND json_type(payload_json, '$') = 'object'
+            AND json_extract(payload_json, '$.artifact_id') = aggregate_id
+            AND json_type(payload_json, '$.previous_state') = 'text'
+            AND json_type(payload_json, '$.state') = 'text'
+            AND json_type(payload_json, '$.reason_code') = 'text'
+            AND length(trim(json_extract(payload_json, '$.reason_code'))) > 0
+        ), 0)
+    ),
+    CHECK (run_seq IS NULL OR run_id IS NOT NULL),
+    UNIQUE (aggregate_type, aggregate_id, aggregate_version),
+    UNIQUE (run_id, run_seq)
+) STRICT;
+
+INSERT INTO events (
+    id, aggregate_type, aggregate_id, aggregate_version, run_id, run_seq,
+    action_id, actor_json, causation_id, correlation_id, type, payload_json,
+    payload_artifact_id, occurred_at
+)
+SELECT
+    id, aggregate_type, aggregate_id, aggregate_version, run_id, run_seq,
+    action_id, actor_json, causation_id, correlation_id, type, payload_json,
+    payload_artifact_id, occurred_at
+FROM events_v2;
+
+CREATE TABLE outbox_events (
+    event_id INTEGER PRIMARY KEY REFERENCES events(id) ON DELETE RESTRICT,
+    dispatched_at TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0)
+) STRICT;
+
+INSERT INTO outbox_events(event_id, dispatched_at, attempts)
+SELECT event_id, dispatched_at, attempts FROM outbox_events_v2;
+
+CREATE TABLE approval_consumptions (
+    approval_id TEXT PRIMARY KEY REFERENCES approvals(id) ON DELETE RESTRICT,
+    action_id TEXT NOT NULL UNIQUE REFERENCES actions(id) ON DELETE RESTRICT,
+    event_id INTEGER UNIQUE REFERENCES events(id) ON DELETE RESTRICT,
+    consumed_at TEXT NOT NULL
+) STRICT;
+
+INSERT INTO approval_consumptions(approval_id, action_id, event_id, consumed_at)
+SELECT approval_id, action_id, event_id, consumed_at
+FROM approval_consumptions_v2;
+
+DROP TABLE approval_consumptions_v2;
+DROP TABLE outbox_events_v2;
+DROP TABLE events_v2;
+
+CREATE INDEX idx_events_aggregate
+    ON events(aggregate_type, aggregate_id, aggregate_version);
+CREATE INDEX idx_events_run ON events(run_id, run_seq);
+CREATE INDEX idx_approval_consumptions_action ON approval_consumptions(action_id);
+CREATE INDEX idx_approval_consumptions_event ON approval_consumptions(event_id);
+
+CREATE TRIGGER events_are_append_only_update
+BEFORE UPDATE ON events
+BEGIN
+    SELECT RAISE(ABORT, 'events are append-only');
+END;
+
+CREATE TRIGGER events_are_append_only_delete
+BEFORE DELETE ON events
+BEGIN
+    SELECT RAISE(ABORT, 'events are append-only');
+END;
+
+CREATE TRIGGER outbox_events_are_retain_only_delete
+BEFORE DELETE ON outbox_events
+BEGIN
+    SELECT RAISE(ABORT, 'outbox events are retained');
+END;
+
+CREATE TRIGGER outbox_events_event_id_immutable
+BEFORE UPDATE OF event_id ON outbox_events
+BEGIN
+    SELECT RAISE(ABORT, 'outbox event_id is immutable');
+END;
+"""
+
+SCHEMA_V3_HASH = (
+    "sha256:" + hashlib.sha256(SCHEMA_V3_SQL.encode("utf-8")).hexdigest()
+)
+
+SCHEMA_V4_SQL = r"""
+CREATE TEMP TABLE __d2_03a_registry_guard (
+    value INTEGER NOT NULL CHECK (value = 0)
+) STRICT;
+
+INSERT INTO __d2_03a_registry_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT 1 FROM capability_registry_entries
+);
+
+DROP TABLE __d2_03a_registry_guard;
+
+DROP INDEX idx_capability_registry_entries_capability;
+
+ALTER TABLE capability_registry_entries RENAME TO capability_registry_entries_v3;
+
+CREATE TABLE capability_registry_entries (
+    capability_id TEXT NOT NULL,
+    capability_version TEXT NOT NULL,
+    executable_digest TEXT NOT NULL,
+    entry_json TEXT NOT NULL CHECK (json_valid(entry_json)),
+    contract_digest TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (capability_id, capability_version, executable_digest),
+    CHECK (json_extract(entry_json, '$.capability.id') = capability_id),
+    CHECK (json_extract(entry_json, '$.capability.version') = capability_version),
+    CHECK (json_extract(entry_json, '$.capability.digest') = executable_digest),
+    CHECK (json_extract(entry_json, '$.contract_digest') = contract_digest),
+    CHECK (json_type(entry_json, '$.read_roots') = 'array'),
+    CHECK (json_type(entry_json, '$.write_roots') = 'array'),
+    CHECK (json_type(entry_json, '$.network_targets') = 'array'),
+    CHECK (json_type(entry_json, '$.network_methods') = 'array'),
+    CHECK (json_type(entry_json, '$.env_keys') = 'array'),
+    CHECK (json_type(entry_json, '$.process_targets') = 'array'),
+    CHECK (json_type(entry_json, '$.default_effect') = 'text')
+) STRICT;
+
+INSERT INTO capability_registry_entries (
+    capability_id, capability_version, executable_digest, entry_json,
+    contract_digest, created_at
+)
+SELECT
+    capability_id,
+    capability_version,
+    executable_digest,
+    json_object(
+        'capability', json_object(
+            'id', capability_id,
+            'version', capability_version,
+            'digest', executable_digest
+        ),
+        'args_schema', json(args_schema_json),
+        'risk_tier', risk_tier,
+        'reversible', CASE reversible WHEN 1 THEN json('true') ELSE json('false') END,
+        'authorization_mode', authorization_mode,
+        'grantable', CASE grantable WHEN 1 THEN json('true') ELSE json('false') END,
+        'provider_mode', provider_mode,
+        'allowed_providers', json(allowed_providers_json),
+        'read_roots', json('[]'),
+        'write_roots', json('[]'),
+        'network_targets', json('[]'),
+        'network_methods', json('[]'),
+        'env_keys', json('[]'),
+        'process_targets', json('[]'),
+        'timeout_seconds', NULL,
+        'default_effect', 'effect_unknown',
+        'contract_digest', contract_digest
+    ),
+    contract_digest,
+    created_at
+FROM capability_registry_entries_v3;
+
+DROP TABLE capability_registry_entries_v3;
+
+CREATE INDEX idx_capability_registry_entries_capability
+    ON capability_registry_entries(capability_id, capability_version);
+"""
+
+SCHEMA_V4_HASH = (
+    "sha256:" + hashlib.sha256(SCHEMA_V4_SQL.encode("utf-8")).hexdigest()
+)
+
+SCHEMA_V5_SQL = r"""
+CREATE TABLE run_budget_ledger (
+    run_id TEXT PRIMARY KEY REFERENCES runs(id) ON DELETE RESTRICT,
+    limits_json TEXT NOT NULL CHECK (json_valid(limits_json)),
+    usage_json TEXT NOT NULL CHECK (json_valid(usage_json)),
+    started_actions INTEGER NOT NULL CHECK (started_actions >= 0),
+    running_actions INTEGER NOT NULL CHECK (running_actions >= 0),
+    exhausted INTEGER NOT NULL CHECK (exhausted IN (0, 1)),
+    exhausted_reason TEXT,
+    exhausted_at TEXT,
+    updated_at TEXT NOT NULL,
+    CHECK (
+        (
+            exhausted = 0
+            AND exhausted_reason IS NULL
+            AND exhausted_at IS NULL
+        )
+        OR (
+            exhausted = 1
+            AND exhausted_reason IS NOT NULL
+            AND length(trim(exhausted_reason)) > 0
+            AND exhausted_at IS NOT NULL
+        )
+    )
+) STRICT;
+
+CREATE INDEX idx_run_budget_ledger_exhausted
+    ON run_budget_ledger(exhausted, run_id);
+"""
+
+SCHEMA_V5_HASH = (
+    "sha256:" + hashlib.sha256(SCHEMA_V5_SQL.encode("utf-8")).hexdigest()
+)
+
+SCHEMA_V6_SQL = r"""
+CREATE TEMP TABLE __d2_08_authorization_guard (
+    value INTEGER NOT NULL CHECK (value = 0)
+) STRICT;
+
+INSERT INTO __d2_08_authorization_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM actions
+    WHERE authorization_ref IS NOT NULL
+       OR state IN (
+           'authorized', 'running', 'succeeded', 'failed', 'cancelled',
+           'timed_out', 'effect_unknown'
+       )
+);
+
+DROP TABLE __d2_08_authorization_guard;
+
+CREATE TABLE action_authorizations (
+    action_id TEXT PRIMARY KEY REFERENCES actions(id) ON DELETE RESTRICT,
+    action_hash TEXT NOT NULL,
+    material_json TEXT NOT NULL CHECK (json_valid(material_json)),
+    registry_contract_digest TEXT NOT NULL,
+    authorization_source TEXT NOT NULL CHECK (
+        authorization_source IN ('policy_grant', 'approval')
+    ),
+    authorization_ref TEXT NOT NULL,
+    authorization_event_id INTEGER NOT NULL UNIQUE
+        REFERENCES events(id) ON DELETE RESTRICT,
+    authorized_at TEXT NOT NULL,
+    CHECK (json_extract(material_json, '$.args_hash') IS NOT NULL),
+    CHECK (json_extract(material_json, '$.capability.digest') IS NOT NULL),
+    CHECK (json_extract(material_json, '$.budget') IS NOT NULL),
+    CHECK (json_extract(material_json, '$.requested_effects') IS NOT NULL)
+) STRICT;
+
+CREATE TRIGGER action_authorizations_are_append_only_update
+BEFORE UPDATE ON action_authorizations
+BEGIN
+    SELECT RAISE(ABORT, 'action authorizations are append-only');
+END;
+
+CREATE TRIGGER action_authorizations_are_append_only_delete
+BEFORE DELETE ON action_authorizations
+BEGIN
+    SELECT RAISE(ABORT, 'action authorizations are append-only');
+END;
+
+CREATE TRIGGER authorized_action_material_is_immutable
+BEFORE UPDATE OF
+    capability_id, capability_version, executable_digest, args_artifact_id,
+    args_hash, action_hash, risk_tier, requested_effects_json,
+    policy_decision, authorization_ref
+ON actions
+WHEN EXISTS (
+    SELECT 1 FROM action_authorizations
+    WHERE action_id = OLD.id
+)
+BEGIN
+    SELECT RAISE(ABORT, 'authorized action material is immutable');
+END;
+
+CREATE INDEX idx_action_authorizations_ref
+    ON action_authorizations(authorization_source, authorization_ref);
+"""
+
+SCHEMA_V6_HASH = (
+    "sha256:" + hashlib.sha256(SCHEMA_V6_SQL.encode("utf-8")).hexdigest()
+)
+
+SCHEMA_V7_SQL = r"""
+CREATE TEMP TABLE __d3_07_approval_guard (
+    value INTEGER NOT NULL CHECK (value = 0)
+) STRICT;
+
+INSERT INTO __d3_07_approval_guard(value)
+SELECT 1
+WHERE EXISTS (
+    SELECT subject_id
+    FROM approvals
+    WHERE subject_type = 'action'
+    GROUP BY subject_id
+    HAVING COUNT(*) > 1
+);
+
+DROP TABLE __d3_07_approval_guard;
+
+CREATE UNIQUE INDEX idx_approvals_one_per_action
+    ON approvals(subject_id)
+    WHERE subject_type = 'action';
+
+CREATE TRIGGER approvals_subject_is_immutable
+BEFORE UPDATE OF
+    subject_type, subject_id, subject_hash, capability_json,
+    parameter_summary_json, requested_effects_json, data_class, provider,
+    budget_json, risk_tier, reversible, allowed_uses, expires_at
+ON approvals
+BEGIN
+    SELECT RAISE(ABORT, 'approval subject is immutable');
+END;
+
+CREATE TRIGGER approvals_decide_once
+BEFORE UPDATE OF decision, decided_by_json, decided_at
+ON approvals
+WHEN OLD.decision <> 'requested'
+   OR NEW.decision = 'requested'
+BEGIN
+    SELECT RAISE(ABORT, 'approval decision is terminal');
+END;
+
+CREATE TRIGGER approval_consumptions_are_append_only_update
+BEFORE UPDATE ON approval_consumptions
+BEGIN
+    SELECT RAISE(ABORT, 'approval consumptions are append-only');
+END;
+
+CREATE TRIGGER approval_consumptions_are_append_only_delete
+BEFORE DELETE ON approval_consumptions
+BEGIN
+    SELECT RAISE(ABORT, 'approval consumptions are append-only');
+END;
+
+CREATE TABLE external_write_fences (
+    action_id TEXT PRIMARY KEY REFERENCES actions(id) ON DELETE RESTRICT,
+    selection_identity_digest TEXT NOT NULL,
+    target_commitment TEXT NOT NULL,
+    event_id INTEGER NOT NULL UNIQUE REFERENCES events(id) ON DELETE RESTRICT,
+    committed_at TEXT NOT NULL
+) STRICT;
+
+CREATE TRIGGER external_write_fences_are_append_only_update
+BEFORE UPDATE ON external_write_fences
+BEGIN
+    SELECT RAISE(ABORT, 'external write fences are append-only');
+END;
+
+CREATE TRIGGER external_write_fences_are_append_only_delete
+BEFORE DELETE ON external_write_fences
+BEGIN
+    SELECT RAISE(ABORT, 'external write fences are append-only');
+END;
+"""
+
+SCHEMA_V7_HASH = (
+    "sha256:" + hashlib.sha256(SCHEMA_V7_SQL.encode("utf-8")).hexdigest()
+)

@@ -11,6 +11,7 @@ from pydantic import Field, field_validator, model_validator
 from nana_sidecar.contracts.common import (
     ActorRef,
     BudgetSnapshot,
+    CapabilityRef,
     ContractModel,
     DataClass,
     EffectScope,
@@ -21,11 +22,20 @@ from nana_sidecar.contracts.common import (
     Revision,
     RiskTier,
     VersionedRef,
+    effect_scope_is_subset,
+    normalize_utc_datetime,
 )
+from nana_sidecar.contracts.safe_json_schema import validate_safe_json_schema
 from nana_sidecar.contracts.locators import (
     LocatorCoordinates,
     validate_logical_path,
 )
+
+
+def _optional_utc_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    return normalize_utc_datetime(value)
 
 
 class WorkspaceStatus(StrEnum):
@@ -255,6 +265,7 @@ class EventType(StrEnum):
     ACTION_STARTED = "action.started"
     ACTION_OUTPUT = "action.output"
     ACTION_COMPLETED = "action.completed"
+    ACTION_CANCELLED = "action.cancelled"
     ACTION_EFFECT_UNKNOWN = "action.effect_unknown"
     ARTIFACT_STAGED = "artifact.staged"
     ARTIFACT_COMMITTED = "artifact.committed"
@@ -343,7 +354,7 @@ class EnvironmentSnapshot(ContractModel):
 class RunSnapshot(ContractModel):
     plan_id: Identifier
     plan_revision: Revision
-    capabilities: tuple[VersionedRef, ...]
+    capabilities: tuple[CapabilityRef, ...]
     models: tuple[VersionedRef, ...] = ()
     backend: VersionedRef
     policy: JsonObject
@@ -386,7 +397,7 @@ class Action(ContractModel):
     id: Identifier
     run_id: Identifier | None = None
     plan_step_id: str | None = Field(default=None, min_length=1, max_length=128)
-    capability: VersionedRef
+    capability: CapabilityRef
     args_artifact_id: Identifier
     args_hash: HashDigest
     action_hash: HashDigest
@@ -538,6 +549,7 @@ class CapabilityConstraints(ContractModel):
     write_roots: tuple[str, ...] = ()
     network_targets: tuple[str, ...] = ()
     network_methods: tuple[str, ...] = ()
+    process_targets: tuple[str, ...] = ()
     per_action_budget: BudgetSnapshot
     cumulative_budget: BudgetSnapshot
     max_concurrency: int = Field(gt=0)
@@ -546,8 +558,12 @@ class CapabilityConstraints(ContractModel):
     expires_at: datetime
     revoke_conditions: tuple[str, ...] = ()
 
+    _valid_from_utc = field_validator("valid_from")(normalize_utc_datetime)
+    _expires_at_utc = field_validator("expires_at")(normalize_utc_datetime)
+
     @model_validator(mode="after")
     def valid_window(self) -> "CapabilityConstraints":
+        validate_safe_json_schema(self.args_schema)
         if self.expires_at <= self.valid_from:
             raise ValueError("PolicyGrant expiry must be after valid_from")
         return self
@@ -556,11 +572,13 @@ class CapabilityConstraints(ContractModel):
 class PolicyGrant(ContractModel):
     id: Identifier
     project_id: Identifier
-    capability: VersionedRef
+    capability: CapabilityRef
     constraints: CapabilityConstraints
     state: PolicyGrantState
     uses: int = Field(ge=0)
     created_at: datetime
+
+    _created_at_utc = field_validator("created_at")(normalize_utc_datetime)
 
     @model_validator(mode="after")
     def uses_within_limit(self) -> "PolicyGrant":
@@ -574,7 +592,7 @@ class Approval(ContractModel):
     subject_type: Annotated[str, Field(pattern=r"^(action|policy_grant)$")]
     subject_id: Identifier
     subject_hash: HashDigest
-    capability: VersionedRef
+    capability: CapabilityRef
     parameter_summary: JsonObject
     requested_effects: EffectScope
     data_class: DataClass
@@ -582,11 +600,14 @@ class Approval(ContractModel):
     budget: BudgetSnapshot
     risk_tier: RiskTier
     reversible: bool
-    allowed_uses: int = Field(ge=1)
+    allowed_uses: Literal[1] = 1
     expires_at: datetime
     decision: ApprovalDecision
     decided_by: ActorRef | None = None
     decided_at: datetime | None = None
+
+    _expires_at_utc = field_validator("expires_at")(normalize_utc_datetime)
+    _decided_at_utc = field_validator("decided_at")(_optional_utc_datetime)
 
     @model_validator(mode="after")
     def decision_audit(self) -> "Approval":
@@ -606,7 +627,9 @@ class ActionReceipt(ContractModel):
     authorization_ref: Annotated[str, Field(min_length=1, max_length=240)]
     approved_by: ActorRef | None = None
     approved_at: datetime | None = None
+    authorized_effects: EffectScope
     actual_effects: EffectScope
+    effect_violation: bool = False
     result: ReceiptResult
     exit_code: int | None = None
     before_artifact_ids: tuple[Identifier, ...] = ()
@@ -617,6 +640,9 @@ class ActionReceipt(ContractModel):
     compensating_action_id: Identifier | None = None
     created_at: datetime
 
+    _approved_at_utc = field_validator("approved_at")(_optional_utc_datetime)
+    _created_at_utc = field_validator("created_at")(normalize_utc_datetime)
+
     @model_validator(mode="after")
     def approval_provenance(self) -> "ActionReceipt":
         approved = self.authorization_source is AuthorizationSource.APPROVAL
@@ -624,6 +650,14 @@ class ActionReceipt(ContractModel):
             raise ValueError("approval-authorized Receipt requires approver and time")
         if not approved and (self.approved_by is not None or self.approved_at is not None):
             raise ValueError("non-approval Receipt cannot claim an approver")
+        violated = not effect_scope_is_subset(
+            self.actual_effects,
+            self.authorized_effects,
+        )
+        if violated != self.effect_violation:
+            raise ValueError("effect_violation must reflect actual versus authorized effects")
+        if self.effect_violation and self.result is not ReceiptResult.EFFECT_UNKNOWN:
+            raise ValueError("effect violation requires effect_unknown result")
         return self
 
 
@@ -651,6 +685,8 @@ class Resource(ContractModel):
     captured_at: datetime
     status: ResourceStatus
     revision: Revision
+
+    _logical_ref = field_validator("logical_ref")(validate_logical_path)
 
 
 class Locator(ContractModel):

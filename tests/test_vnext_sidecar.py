@@ -34,8 +34,8 @@ class VNextSidecarTests(unittest.IsolatedAsyncioTestCase):
             {
                 "app_version": "0.3.0-dev",
                 "api_version": "1",
-                "schema_version": 1,
-                "schema_read_ceiling": 1,
+                "schema_version": 7,
+                "schema_read_ceiling": 7,
                 "mode": "development_contract_only",
                 "mutations_enabled": False,
             },
@@ -99,7 +99,9 @@ class VNextSidecarTests(unittest.IsolatedAsyncioTestCase):
     async def test_checked_in_openapi_snapshot_is_current(self) -> None:
         root = Path(__file__).resolve().parents[1]
         snapshot = json.loads(
-            (root / "nana_web" / "openapi.json").read_text(encoding="utf-8")
+            (root / "fixtures" / "v0.3.0-dev" / "d0_openapi.json").read_text(
+                encoding="utf-8"
+            )
         )
         live = (await self.client.get("/openapi.json")).json()
 

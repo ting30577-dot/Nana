@@ -83,6 +83,30 @@ class ArtifactCommitService:
     ) -> int:
         """Atomically write staged metadata, lifecycle Event, and outbox row."""
 
+        with self._transaction():
+            event_id = self.record_staged_in_transaction(
+                artifact_id,
+                staged,
+                producer_run_id=producer_run_id,
+                license=license,
+                retention=retention,
+            )
+        self._checkpoint("staged_committed")
+        return event_id
+
+    def record_staged_in_transaction(
+        self,
+        artifact_id: str,
+        staged: StagedArtifact,
+        *,
+        producer_run_id: str | None = None,
+        license: str | None = None,
+        retention: Mapping[str, object] | None = None,
+    ) -> int:
+        """Record staged metadata inside the caller's active transaction."""
+
+        if not self.connection.in_transaction:
+            raise RuntimeError("Artifact staging requires an active transaction")
         self.store.verify_staged(
             staged,
             expected_hash=staged.blob_hash,
@@ -97,38 +121,36 @@ class ArtifactCommitService:
             media_type=staged.media_type,
         )
         occurred_at = self._now()
-        with self._transaction():
-            self.connection.execute(
-                """
-                INSERT INTO artifacts (
-                    id, media_type, blob_hash, size, state, temp_ref,
-                    producer_run_id, license, retention_json, created_at
-                ) VALUES (?, ?, ?, ?, 'staged', ?, ?, ?, ?, ?)
-                """,
-                (
-                    artifact_id,
-                    staged.media_type,
-                    staged.blob_hash,
-                    staged.size,
-                    staged.temp_ref,
-                    producer_run_id,
-                    license,
-                    _json(dict(retention or {})),
-                    occurred_at,
-                ),
-            )
-            event_id = self._insert_event(
-                artifact_id=artifact_id,
-                aggregate_version=1,
-                event_type="artifact.staged",
-                payload=payload.model_dump(mode="json"),
-                occurred_at=occurred_at,
-            )
-            self.connection.execute(
-                "INSERT INTO outbox_events(event_id) VALUES (?)",
-                (event_id,),
-            )
-        self._checkpoint("staged_committed")
+        self.connection.execute(
+            """
+            INSERT INTO artifacts (
+                id, media_type, blob_hash, size, state, temp_ref,
+                producer_run_id, license, retention_json, created_at
+            ) VALUES (?, ?, ?, ?, 'staged', ?, ?, ?, ?, ?)
+            """,
+            (
+                artifact_id,
+                staged.media_type,
+                staged.blob_hash,
+                staged.size,
+                staged.temp_ref,
+                producer_run_id,
+                license,
+                _json(dict(retention or {})),
+                occurred_at,
+            ),
+        )
+        event_id = self._insert_event(
+            artifact_id=artifact_id,
+            aggregate_version=1,
+            event_type="artifact.staged",
+            payload=payload.model_dump(mode="json"),
+            occurred_at=occurred_at,
+        )
+        self.connection.execute(
+            "INSERT INTO outbox_events(event_id) VALUES (?)",
+            (event_id,),
+        )
         return event_id
 
     def promote_and_publish(
@@ -138,9 +160,33 @@ class ArtifactCommitService:
     ) -> ArtifactPublishResult:
         """Promote the blob, then atomically publish canonical availability."""
 
+        final_path = self.promote_blob(artifact_id, staged)
+        with self._transaction():
+            return self.publish_promoted_in_transaction(
+                artifact_id,
+                staged,
+                final_path=final_path,
+            )
+
+    def promote_blob(self, artifact_id: str, staged: StagedArtifact) -> Path:
+        """Promote staged bytes while leaving canonical state non-visible."""
+
         self._require_matching_staged_row(artifact_id, staged)
         final_path = self.store.promote(staged)
         self._checkpoint("blob_promoted")
+        return final_path
+
+    def publish_promoted_in_transaction(
+        self,
+        artifact_id: str,
+        staged: StagedArtifact,
+        *,
+        final_path: Path | None = None,
+    ) -> ArtifactPublishResult:
+        """Publish a promoted blob inside the caller's active transaction."""
+
+        if not self.connection.in_transaction:
+            raise RuntimeError("Artifact publication requires an active transaction")
         payload = ArtifactCommittedPayload(
             artifact_id=artifact_id,
             blob_hash=staged.blob_hash,
@@ -148,35 +194,34 @@ class ArtifactCommitService:
             media_type=staged.media_type,
         )
         occurred_at = self._now()
-        with self._transaction():
-            self._require_matching_staged_row(artifact_id, staged)
-            self.store.verify_final(staged)
-            updated = self.connection.execute(
-                """
-                UPDATE artifacts
-                SET state = 'available', temp_ref = NULL
-                WHERE id = ? AND state = 'staged'
-                """,
-                (artifact_id,),
+        self._require_matching_staged_row(artifact_id, staged)
+        self.store.verify_final(staged)
+        updated = self.connection.execute(
+            """
+            UPDATE artifacts
+            SET state = 'available', temp_ref = NULL
+            WHERE id = ? AND state = 'staged'
+            """,
+            (artifact_id,),
+        )
+        if updated.rowcount != 1:
+            raise ArtifactNotAvailableError(
+                f"Artifact {artifact_id} is not staged"
             )
-            if updated.rowcount != 1:
-                raise ArtifactNotAvailableError(
-                    f"Artifact {artifact_id} is not staged"
-                )
-            event_id = self._insert_event(
-                artifact_id=artifact_id,
-                aggregate_version=2,
-                event_type="artifact.committed",
-                payload=payload.model_dump(mode="json"),
-                occurred_at=occurred_at,
-            )
-            self.connection.execute(
-                "INSERT INTO outbox_events(event_id) VALUES (?)",
-                (event_id,),
-            )
+        event_id = self._insert_event(
+            artifact_id=artifact_id,
+            aggregate_version=2,
+            event_type="artifact.committed",
+            payload=payload.model_dump(mode="json"),
+            occurred_at=occurred_at,
+        )
+        self.connection.execute(
+            "INSERT INTO outbox_events(event_id) VALUES (?)",
+            (event_id,),
+        )
         return ArtifactPublishResult(
             committed_event_id=event_id,
-            final_path=final_path,
+            final_path=final_path or self.store.blob_path(staged.blob_hash),
         )
 
     def commit(

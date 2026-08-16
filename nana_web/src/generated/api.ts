@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bootstrap */
+        get: operations["bootstrap_api_v1_bootstrap_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/contracts": {
         parameters: {
             query?: never;
@@ -13,6 +30,23 @@ export interface paths {
         };
         /** Contract Catalog */
         get: operations["contract_catalog_api_v1_contracts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Events */
+        get: operations["events_api_v1_events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -32,6 +66,23 @@ export interface paths {
         get: operations["handshake_api_v1_handshake_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journey/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Journey Command */
+        post: operations["journey_command_api_v1_journey_commands_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -75,7 +126,7 @@ export interface components {
              * @default null
              */
             authorization_ref: string | null;
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             /**
              * Finished At
              * @default null
@@ -118,7 +169,7 @@ export interface components {
             /** Args Hash */
             args_hash: string;
             budget: components["schemas"]["BudgetSnapshot"];
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             data_class: components["schemas"]["DataClass"];
             /**
              * Network Methods
@@ -160,6 +211,7 @@ export interface components {
             /** Authorization Ref */
             authorization_ref: string;
             authorization_source: components["schemas"]["AuthorizationSource"];
+            authorized_effects: components["schemas"]["EffectScope"];
             /**
              * Before Artifact Ids
              * @default []
@@ -180,6 +232,11 @@ export interface components {
              * @default null
              */
             diff_artifact_id: string | null;
+            /**
+             * Effect Violation
+             * @default false
+             */
+            effect_violation: boolean;
             /**
              * Exit Code
              * @default null
@@ -224,10 +281,14 @@ export interface components {
         };
         /** Approval */
         Approval: {
-            /** Allowed Uses */
-            allowed_uses: number;
+            /**
+             * Allowed Uses
+             * @default 1
+             * @constant
+             */
+            allowed_uses: 1;
             budget: components["schemas"]["BudgetSnapshot"];
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             data_class: components["schemas"]["DataClass"];
             /**
              * Decided At
@@ -574,6 +635,34 @@ export interface components {
              */
             type: "AttachEvidence";
         };
+        /** AttachEvidenceRequest */
+        AttachEvidenceRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            direction: components["schemas"]["Direction"];
+            /** Excerpt Hash */
+            excerpt_hash: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Inquiry Id
+             * Format: uuid
+             */
+            inquiry_id: string;
+            /**
+             * Locator Id
+             * Format: uuid
+             */
+            locator_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "AttachEvidence";
+        };
         /** AuthorizationMatch */
         AuthorizationMatch: {
             /** Matches */
@@ -717,6 +806,33 @@ export interface components {
              */
             type: "CancelRun";
         };
+        /** CancelRunRequest */
+        CancelRunRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CancelRun";
+        };
+        /**
+         * CapabilityAuthorizationMode
+         * @enum {string}
+         */
+        CapabilityAuthorizationMode: "auto_policy" | "policy_grant" | "one_time_approval";
         /** CapabilityConstraints */
         CapabilityConstraints: {
             /** Allowed Data Classes */
@@ -752,6 +868,11 @@ export interface components {
             network_targets: string[];
             per_action_budget: components["schemas"]["BudgetSnapshot"];
             /**
+             * Process Targets
+             * @default []
+             */
+            process_targets: string[];
+            /**
              * Read Roots
              * @default []
              */
@@ -766,6 +887,94 @@ export interface components {
              * Format: date-time
              */
             valid_from: string;
+            /**
+             * Write Roots
+             * @default []
+             */
+            write_roots: string[];
+        };
+        /**
+         * CapabilityDefaultEffect
+         * @enum {string}
+         */
+        CapabilityDefaultEffect: "reversible" | "effect_unknown";
+        /**
+         * CapabilityProviderMode
+         * @enum {string}
+         */
+        CapabilityProviderMode: "forbidden" | "optional" | "required";
+        /**
+         * CapabilityRef
+         * @description Executable Capability identity pinned to an implementation digest.
+         */
+        CapabilityRef: {
+            /** Digest */
+            digest: string;
+            /** Id */
+            id: string;
+            /** Version */
+            version: string;
+        };
+        /**
+         * CapabilityRegistryEntry
+         * @description Registry truth for a pinned executable Capability implementation.
+         */
+        CapabilityRegistryEntry: {
+            /**
+             * Allowed Providers
+             * @default []
+             */
+            allowed_providers: string[];
+            /** Args Schema */
+            args_schema: {
+                [key: string]: unknown;
+            };
+            authorization_mode: components["schemas"]["CapabilityAuthorizationMode"];
+            capability: components["schemas"]["CapabilityRef"];
+            /**
+             * Contract Digest
+             * @default null
+             */
+            contract_digest: string | null;
+            /** @default effect_unknown */
+            default_effect: components["schemas"]["CapabilityDefaultEffect"];
+            /**
+             * Env Keys
+             * @default []
+             */
+            env_keys: string[];
+            /** Grantable */
+            grantable: boolean;
+            /**
+             * Network Methods
+             * @default []
+             */
+            network_methods: string[];
+            /**
+             * Network Targets
+             * @default []
+             */
+            network_targets: string[];
+            /**
+             * Process Targets
+             * @default []
+             */
+            process_targets: string[];
+            /** @default forbidden */
+            provider_mode: components["schemas"]["CapabilityProviderMode"];
+            /**
+             * Read Roots
+             * @default []
+             */
+            read_roots: string[];
+            /** Reversible */
+            reversible: boolean;
+            risk_tier: components["schemas"]["RiskTier"];
+            /**
+             * Timeout Seconds
+             * @default null
+             */
+            timeout_seconds: number | null;
             /**
              * Write Roots
              * @default []
@@ -909,9 +1118,10 @@ export interface components {
             /** Artifact Lifecycle Event */
             artifact_lifecycle_event: components["schemas"]["ArtifactStagedEvent"] | components["schemas"]["ArtifactCommittedEvent"] | components["schemas"]["ArtifactReconciledEvent"];
             authorization_match: components["schemas"]["AuthorizationMatch"];
+            capability_registry_entry: components["schemas"]["CapabilityRegistryEntry"];
             claim: components["schemas"]["Claim"];
             /** Command */
-            command: components["schemas"]["CreateProject"] | components["schemas"]["CreateInquiry"] | components["schemas"]["ProposePlan"] | components["schemas"]["RevisePlan"] | components["schemas"]["StartRun"] | components["schemas"]["PauseRun"] | components["schemas"]["CancelRun"] | components["schemas"]["ProposeAction"] | components["schemas"]["CreatePolicyGrant"] | components["schemas"]["RevokePolicyGrant"] | components["schemas"]["RequestApproval"] | components["schemas"]["DecideApproval"] | components["schemas"]["AuthorizeAction"] | components["schemas"]["CommitArtifact"] | components["schemas"]["RegisterResource"] | components["schemas"]["CreateLocator"] | components["schemas"]["CreateClaim"] | components["schemas"]["AttachEvidence"] | components["schemas"]["CreateHypothesis"] | components["schemas"]["DraftFinding"] | components["schemas"]["CreateRelation"] | components["schemas"]["PublishExport"];
+            command: components["schemas"]["CreateProject"] | components["schemas"]["CreateInquiry"] | components["schemas"]["ProposePlan"] | components["schemas"]["RevisePlan"] | components["schemas"]["StartRun"] | components["schemas"]["PauseRun"] | components["schemas"]["ResumeRun"] | components["schemas"]["CancelRun"] | components["schemas"]["ProposeAction"] | components["schemas"]["CreatePolicyGrant"] | components["schemas"]["RevokePolicyGrant"] | components["schemas"]["RequestApproval"] | components["schemas"]["DecideApproval"] | components["schemas"]["AuthorizeAction"] | components["schemas"]["CommitArtifact"] | components["schemas"]["RegisterResource"] | components["schemas"]["CreateLocator"] | components["schemas"]["CreateClaim"] | components["schemas"]["AttachEvidence"] | components["schemas"]["CreateHypothesis"] | components["schemas"]["DraftFinding"] | components["schemas"]["CreateRelation"] | components["schemas"]["PublishExport"];
             command_result: components["schemas"]["CommandResult"];
             decision: components["schemas"]["Decision"];
             error_response: components["schemas"]["ErrorResponse"];
@@ -957,6 +1167,28 @@ export interface components {
              */
             type: "CreateClaim";
         };
+        /** CreateClaimRequest */
+        CreateClaimRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Inquiry Id
+             * Format: uuid
+             */
+            inquiry_id: string;
+            /** Statement */
+            statement: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CreateClaim";
+        };
         /** CreateHypothesis */
         CreateHypothesis: {
             actor: components["schemas"]["ActorRef"];
@@ -970,6 +1202,30 @@ export interface components {
              * @default null
              */
             expected_revision: number | null;
+            /** Falsification Criteria */
+            falsification_criteria: string;
+            /**
+             * Inquiry Id
+             * Format: uuid
+             */
+            inquiry_id: string;
+            /** Statement */
+            statement: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CreateHypothesis";
+        };
+        /** CreateHypothesisRequest */
+        CreateHypothesisRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
             /** Falsification Criteria */
             falsification_criteria: string;
             /**
@@ -1000,6 +1256,30 @@ export interface components {
              * @default null
              */
             expected_revision: number | null;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Question */
+            question: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CreateInquiry";
+        };
+        /** CreateInquiryRequest */
+        CreateInquiryRequest: {
+            /** Acceptance */
+            acceptance: string;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
             /**
              * Project Id
              * Format: uuid
@@ -1046,10 +1326,38 @@ export interface components {
              */
             type: "CreateLocator";
         };
+        /** CreateLocatorRequest */
+        CreateLocatorRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            coordinates: components["schemas"]["LocalFileCoordinates"];
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Locator Type
+             * @constant
+             */
+            locator_type: "local_file";
+            /** Quote Hash */
+            quote_hash: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CreateLocator";
+        };
         /** CreatePolicyGrant */
         CreatePolicyGrant: {
             actor: components["schemas"]["ActorRef"];
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             /**
              * Command Id
              * Format: uuid
@@ -1099,6 +1407,29 @@ export interface components {
              */
             workspace_id: string;
         };
+        /** CreateProjectRequest */
+        CreateProjectRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            data_class: components["schemas"]["DataClass"];
+            /** Expected Revision */
+            expected_revision: number;
+            /** Title */
+            title: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CreateProject";
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+        };
         /** CreateRelation */
         CreateRelation: {
             actor: components["schemas"]["ActorRef"];
@@ -1127,6 +1458,46 @@ export interface components {
             target_id: string;
             /** Target Type */
             target_type: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "CreateRelation";
+        };
+        /** CreateRelationRequest */
+        CreateRelationRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Relation Type
+             * @enum {string}
+             */
+            relation_type: "evidence_supports_claim" | "evidence_opposes_claim" | "evidence_limits_claim";
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /**
+             * Source Type
+             * @constant
+             */
+            source_type: "evidence";
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @constant
+             */
+            target_type: "claim";
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -1203,6 +1574,36 @@ export interface components {
              */
             type: "DecideApproval";
         };
+        /**
+         * DecideApprovalRequest
+         * @description Decide one already-projected Approval without supplying authority.
+         */
+        DecideApprovalRequest: {
+            /**
+             * Approval Id
+             * Format: uuid
+             */
+            approval_id: string;
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approved" | "denied";
+            /** Expected Revision */
+            expected_revision: number;
+            /** Subject Hash */
+            subject_hash: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DecideApproval";
+        };
         /** Decision */
         Decision: {
             /** Alternatives */
@@ -1264,6 +1665,40 @@ export interface components {
              * @default null
              */
             expected_revision: number | null;
+            /**
+             * Inquiry Id
+             * Format: uuid
+             */
+            inquiry_id: string;
+            /** Statement */
+            statement: string;
+            /**
+             * Terminal Run Ids
+             * @default []
+             */
+            terminal_run_ids: string[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "DraftFinding";
+        };
+        /** DraftFindingRequest */
+        DraftFindingRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Confidence Basis */
+            confidence_basis: string;
+            /**
+             * Evidence Ids
+             * @default []
+             */
+            evidence_ids: string[];
+            /** Expected Revision */
+            expected_revision: number;
             /**
              * Inquiry Id
              * Format: uuid
@@ -1397,7 +1832,7 @@ export interface components {
          * EventType
          * @enum {string}
          */
-        EventType: "workspace.created" | "project.created" | "project.status_changed" | "inquiry.created" | "inquiry.status_changed" | "plan.proposed" | "plan.revised" | "plan.status_changed" | "run.created" | "run.started" | "run.heartbeat" | "run.paused" | "run.cancelled" | "run.timed_out" | "run.failed" | "run.succeeded" | "run.budget_exceeded" | "run.orphaned" | "plan.step.started" | "plan.step.completed" | "plan.step.failed" | "action.proposed" | "action.authorized" | "action.started" | "action.output" | "action.completed" | "action.effect_unknown" | "artifact.staged" | "artifact.committed" | "artifact.reconciled" | "budget.updated" | "budget.threshold_reached" | "policy_grant.created" | "policy_grant.revoked" | "policy_grant.expired" | "approval.requested" | "approval.decided" | "approval.expired" | "resource.registered" | "locator.created" | "claim.created" | "evidence.attached" | "hypothesis.created" | "finding.drafted" | "relation.created" | "export.published";
+        EventType: "workspace.created" | "project.created" | "project.status_changed" | "inquiry.created" | "inquiry.status_changed" | "plan.proposed" | "plan.revised" | "plan.status_changed" | "run.created" | "run.started" | "run.heartbeat" | "run.paused" | "run.cancelled" | "run.timed_out" | "run.failed" | "run.succeeded" | "run.budget_exceeded" | "run.orphaned" | "plan.step.started" | "plan.step.completed" | "plan.step.failed" | "action.proposed" | "action.authorized" | "action.started" | "action.output" | "action.completed" | "action.cancelled" | "action.effect_unknown" | "artifact.staged" | "artifact.committed" | "artifact.reconciled" | "budget.updated" | "budget.threshold_reached" | "policy_grant.created" | "policy_grant.revoked" | "policy_grant.expired" | "approval.requested" | "approval.decided" | "approval.expired" | "resource.registered" | "locator.created" | "claim.created" | "evidence.attached" | "hypothesis.created" | "finding.drafted" | "relation.created" | "export.published";
         /** Evidence */
         Evidence: {
             created_by: components["schemas"]["ActorRef"];
@@ -1429,6 +1864,20 @@ export interface components {
          * @enum {string}
          */
         EvidenceStatus: "lead" | "valid" | "rejected" | "stale" | "source_unavailable" | "tombstoned";
+        /** ExportSelectionInfo */
+        ExportSelectionInfo: {
+            /** Expires At */
+            expires_at: string;
+            /** Label */
+            label: string;
+            /**
+             * Provenance
+             * @enum {string}
+             */
+            provenance: "interactive_user" | "test_harness";
+            /** Selection Id */
+            selection_id: string;
+        };
         /** Finding */
         Finding: {
             /** Confidence Basis */
@@ -1478,28 +1927,10 @@ export interface components {
             project_id: string;
             projected_cumulative_budget: components["schemas"]["BudgetSnapshot"];
         };
-        /** HandshakeResponse */
-        HandshakeResponse: {
-            /** Api Version */
-            api_version: string;
-            /** App Version */
-            app_version: string;
-            /**
-             * Mode
-             * @default development_contract_only
-             * @constant
-             */
-            mode: "development_contract_only";
-            /**
-             * Mutations Enabled
-             * @default false
-             * @constant
-             */
-            mutations_enabled: false;
-            /** Schema Read Ceiling */
-            schema_read_ceiling: number;
-            /** Schema Version */
-            schema_version: number;
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
         /** HealthResponse */
         HealthResponse: {
@@ -1685,6 +2116,28 @@ export interface components {
              */
             type: "PauseRun";
         };
+        /** PauseRunRequest */
+        PauseRunRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PauseRun";
+        };
         /** PdfCoordinates */
         PdfCoordinates: {
             /** Artifact Hash */
@@ -1767,7 +2220,7 @@ export interface components {
         PolicyDecision: "auto" | "grant" | "approval_required" | "denied";
         /** PolicyGrant */
         PolicyGrant: {
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             constraints: components["schemas"]["CapabilityConstraints"];
             /**
              * Created At
@@ -1833,7 +2286,7 @@ export interface components {
             args_artifact_id: string;
             /** Args Hash */
             args_hash: string;
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             /**
              * Command Id
              * Format: uuid
@@ -1876,6 +2329,33 @@ export interface components {
              * @default null
              */
             expected_revision: number | null;
+            /**
+             * Inquiry Id
+             * Format: uuid
+             */
+            inquiry_id: string;
+            /** Policy */
+            policy: {
+                [key: string]: unknown;
+            };
+            /** Steps */
+            steps: components["schemas"]["PlanStep"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ProposePlan";
+        };
+        /** ProposePlanRequest */
+        ProposePlanRequest: {
+            budget: components["schemas"]["BudgetSnapshot"];
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
             /**
              * Inquiry Id
              * Format: uuid
@@ -1974,6 +2454,38 @@ export interface components {
              */
             type: "RegisterResource";
         };
+        /** RegisterResourceRequest */
+        RegisterResourceRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            data_class: components["schemas"]["DataClass"];
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "local_file";
+            /** License */
+            license?: string | null;
+            /** Logical Ref */
+            logical_ref: string;
+            /** Media Type */
+            media_type: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "RegisterResource";
+        };
         /** Relation */
         Relation: {
             created_by: components["schemas"]["ActorRef"];
@@ -2038,10 +2550,14 @@ export interface components {
         /** RequestApproval */
         RequestApproval: {
             actor: components["schemas"]["ActorRef"];
-            /** Allowed Uses */
-            allowed_uses: number;
+            /**
+             * Allowed Uses
+             * @default 1
+             * @constant
+             */
+            allowed_uses: 1;
             budget: components["schemas"]["BudgetSnapshot"];
-            capability: components["schemas"]["VersionedRef"];
+            capability: components["schemas"]["CapabilityRef"];
             /**
              * Command Id
              * Format: uuid
@@ -2080,6 +2596,31 @@ export interface components {
             subject_id: string;
             /** Subject Type */
             subject_type: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "RequestApproval";
+        };
+        /**
+         * RequestApprovalRequest
+         * @description Prepare one exact server-derived draft-export subject.
+         */
+        RequestApprovalRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /** Target Selection Id */
+            target_selection_id: string;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2164,6 +2705,54 @@ export interface components {
             /** Wall Clock Ms */
             wall_clock_ms: number;
         };
+        /** ResumeRun */
+        ResumeRun: {
+            actor: components["schemas"]["ActorRef"];
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /**
+             * Expected Revision
+             * @default null
+             */
+            expected_revision: number | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ResumeRun";
+        };
+        /** ResumeRunRequest */
+        ResumeRunRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Reason */
+            reason: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ResumeRun";
+        };
         /** RevisePlan */
         RevisePlan: {
             actor: components["schemas"]["ActorRef"];
@@ -2178,6 +2767,33 @@ export interface components {
              * @default null
              */
             expected_revision: number | null;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Policy */
+            policy: {
+                [key: string]: unknown;
+            };
+            /** Steps */
+            steps: components["schemas"]["PlanStep"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "RevisePlan";
+        };
+        /** RevisePlanRequest */
+        RevisePlanRequest: {
+            budget: components["schemas"]["BudgetSnapshot"];
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
             /**
              * Plan Id
              * Format: uuid
@@ -2303,7 +2919,7 @@ export interface components {
             backend: components["schemas"]["VersionedRef"];
             budget: components["schemas"]["BudgetSnapshot"];
             /** Capabilities */
-            capabilities: components["schemas"]["VersionedRef"][];
+            capabilities: components["schemas"]["CapabilityRef"][];
             code: components["schemas"]["CodeSnapshot"];
             environment: components["schemas"]["EnvironmentSnapshot"];
             /**
@@ -2335,6 +2951,46 @@ export interface components {
          * @enum {string}
          */
         RunState: "proposed" | "queued" | "running" | "paused" | "succeeded" | "failed" | "cancelled" | "timed_out" | "budget_exceeded" | "orphaned";
+        /** RuntimeHandshakeResponse */
+        RuntimeHandshakeResponse: {
+            /** Api Version */
+            api_version: string;
+            /** App Version */
+            app_version: string;
+            /** Enabled Mutations */
+            enabled_mutations: string[];
+            /**
+             * Execution Enabled
+             * @default false
+             */
+            execution_enabled: boolean;
+            /**
+             * Export Selections
+             * @default []
+             */
+            export_selections: components["schemas"]["ExportSelectionInfo"][];
+            /**
+             * External Effects Enabled
+             * @default false
+             */
+            external_effects_enabled: boolean;
+            /**
+             * Mode
+             * @default development_runtime
+             * @constant
+             */
+            mode: "development_runtime";
+            /**
+             * Mutations Enabled
+             * @default true
+             * @constant
+             */
+            mutations_enabled: true;
+            /** Schema Read Ceiling */
+            schema_read_ceiling: number;
+            /** Schema Version */
+            schema_version: number;
+        };
         /** StartRun */
         StartRun: {
             actor: components["schemas"]["ActorRef"];
@@ -2369,6 +3025,50 @@ export interface components {
             /** Random Seed */
             random_seed: number;
             /**
+             * Retry Of Run Id
+             * @default null
+             */
+            retry_of_run_id: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "StartRun";
+        };
+        /**
+         * StartRunRequest
+         * @description Browser-safe locked T2 start; fixture inputs stay server-owned.
+         */
+        StartRunRequest: {
+            /**
+             * Command Id
+             * Format: uuid
+             */
+            command_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /**
+             * Inquiry Id
+             * Format: uuid
+             */
+            inquiry_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Plan Revision */
+            plan_revision: number;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Random Seed */
+            random_seed: number;
+            /** Retry Of Run Id */
+            retry_of_run_id?: string | null;
+            /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
@@ -2393,6 +3093,19 @@ export interface components {
              * @default []
              */
             suggested_actions: string[];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
         /** VersionedRef */
         VersionedRef: {
@@ -2471,6 +3184,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    bootstrap_api_v1_bootstrap_get: {
+        parameters: {
+            query?: {
+                section?: string | null;
+                page_token?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     contract_catalog_api_v1_contracts_get: {
         parameters: {
             query?: never;
@@ -2491,6 +3237,35 @@ export interface operations {
             };
         };
     };
+    events_api_v1_events_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     handshake_api_v1_handshake_get: {
         parameters: {
             query?: never;
@@ -2506,7 +3281,58 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HandshakeResponse"];
+                    "application/json": components["schemas"]["RuntimeHandshakeResponse"];
+                };
+            };
+        };
+    };
+    journey_command_api_v1_journey_commands_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectRequest"] | components["schemas"]["CreateInquiryRequest"] | components["schemas"]["ProposePlanRequest"] | components["schemas"]["RevisePlanRequest"] | components["schemas"]["StartRunRequest"] | components["schemas"]["PauseRunRequest"] | components["schemas"]["ResumeRunRequest"] | components["schemas"]["CancelRunRequest"] | components["schemas"]["RegisterResourceRequest"] | components["schemas"]["CreateLocatorRequest"] | components["schemas"]["CreateClaimRequest"] | components["schemas"]["AttachEvidenceRequest"] | components["schemas"]["CreateHypothesisRequest"] | components["schemas"]["CreateRelationRequest"] | components["schemas"]["DraftFindingRequest"] | components["schemas"]["RequestApprovalRequest"] | components["schemas"]["DecideApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandResult"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -2526,7 +3352,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HealthResponse"];
+                    "application/json": unknown;
                 };
             };
         };

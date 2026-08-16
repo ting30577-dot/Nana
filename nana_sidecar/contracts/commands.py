@@ -6,11 +6,12 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Literal, Union
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from nana_sidecar.contracts.common import (
     ActorRef,
     BudgetSnapshot,
+    CapabilityRef,
     ContractModel,
     DataClass,
     EffectScope,
@@ -19,6 +20,7 @@ from nana_sidecar.contracts.common import (
     JsonObject,
     Revision,
     RiskTier,
+    normalize_utc_datetime,
     VersionedRef,
 )
 from nana_sidecar.contracts.domain import (
@@ -74,10 +76,17 @@ class StartRun(CommandBase):
     plan_revision: Revision
     backend: VersionedRef
     random_seed: int
+    retry_of_run_id: Identifier | None = None
 
 
 class PauseRun(CommandBase):
     type: Literal["PauseRun"]
+    run_id: Identifier
+    reason: Annotated[str, Field(min_length=1, max_length=2000)]
+
+
+class ResumeRun(CommandBase):
+    type: Literal["ResumeRun"]
     run_id: Identifier
     reason: Annotated[str, Field(min_length=1, max_length=2000)]
 
@@ -92,7 +101,7 @@ class ProposeAction(CommandBase):
     type: Literal["ProposeAction"]
     run_id: Identifier | None = None
     plan_step_id: str | None = Field(default=None, min_length=1, max_length=128)
-    capability: VersionedRef
+    capability: CapabilityRef
     args_artifact_id: Identifier
     args_hash: HashDigest
     requested_effects: EffectScope
@@ -102,7 +111,7 @@ class ProposeAction(CommandBase):
 class CreatePolicyGrant(CommandBase):
     type: Literal["CreatePolicyGrant"]
     project_id: Identifier
-    capability: VersionedRef
+    capability: CapabilityRef
     constraints: CapabilityConstraints
 
 
@@ -117,7 +126,7 @@ class RequestApproval(CommandBase):
     subject_type: Annotated[str, Field(pattern=r"^(action|policy_grant)$")]
     subject_id: Identifier
     subject_hash: HashDigest
-    capability: VersionedRef
+    capability: CapabilityRef
     parameter_summary: JsonObject
     requested_effects: EffectScope
     data_class: DataClass
@@ -125,8 +134,10 @@ class RequestApproval(CommandBase):
     budget: BudgetSnapshot
     risk_tier: RiskTier
     reversible: bool
-    allowed_uses: int = Field(ge=1)
+    allowed_uses: Literal[1] = 1
     expires_at: datetime
+
+    _expires_at_utc = field_validator("expires_at")(normalize_utc_datetime)
 
 
 class DecideApproval(CommandBase):
@@ -247,6 +258,7 @@ Command = Annotated[
         RevisePlan,
         StartRun,
         PauseRun,
+        ResumeRun,
         CancelRun,
         ProposeAction,
         CreatePolicyGrant,
@@ -277,6 +289,7 @@ DEV_COMMAND_NAMES = frozenset(
         RevisePlan,
         StartRun,
         PauseRun,
+        ResumeRun,
         CancelRun,
         ProposeAction,
         CreatePolicyGrant,

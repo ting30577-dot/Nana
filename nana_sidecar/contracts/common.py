@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Annotated, Any
 from uuid import UUID
@@ -56,6 +56,14 @@ class VersionedRef(ContractModel):
     digest: HashDigest | None = None
 
 
+class CapabilityRef(ContractModel):
+    """Executable Capability identity pinned to an implementation digest."""
+
+    id: Annotated[str, Field(min_length=1, max_length=160)]
+    version: Annotated[str, Field(min_length=1, max_length=128)]
+    digest: HashDigest
+
+
 class BudgetSnapshot(ContractModel):
     """Immutable limits frozen when a Run or authorization is created."""
 
@@ -96,3 +104,22 @@ class ResourceUsage(ContractModel):
 
 class Timestamped(ContractModel):
     created_at: datetime
+
+
+def normalize_utc_datetime(value: datetime) -> datetime:
+    """Reject naive datetimes and normalize aware values to UTC."""
+
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("authorization timestamps must be timezone-aware UTC")
+    return value.astimezone(timezone.utc)
+
+
+def effect_scope_is_subset(actual: EffectScope, authorized: EffectScope) -> bool:
+    """Return whether every observed effect was explicitly authorized."""
+
+    return (
+        set(actual.reads).issubset(authorized.reads)
+        and set(actual.writes).issubset(authorized.writes)
+        and set(actual.network).issubset(authorized.network)
+        and set(actual.processes).issubset(authorized.processes)
+    )

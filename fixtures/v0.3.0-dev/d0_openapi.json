@@ -1,0 +1,5952 @@
+{
+  "components": {
+    "schemas": {
+      "Action": {
+        "additionalProperties": false,
+        "properties": {
+          "action_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Action Hash",
+            "type": "string"
+          },
+          "args_artifact_id": {
+            "format": "uuid",
+            "title": "Args Artifact Id",
+            "type": "string"
+          },
+          "args_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Args Hash",
+            "type": "string"
+          },
+          "authorization_ref": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Authorization Ref"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "plan_step_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Step Id"
+          },
+          "policy_decision": {
+            "$ref": "#/components/schemas/PolicyDecision"
+          },
+          "requested_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Started At"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ActionState"
+          }
+        },
+        "required": [
+          "id",
+          "capability",
+          "args_artifact_id",
+          "args_hash",
+          "action_hash",
+          "risk_tier",
+          "requested_effects",
+          "policy_decision",
+          "state"
+        ],
+        "title": "Action",
+        "type": "object"
+      },
+      "ActionHashMaterial": {
+        "additionalProperties": false,
+        "description": "Every mutable input whose change must invalidate an Approval.",
+        "properties": {
+          "args": {
+            "additionalProperties": true,
+            "title": "Args",
+            "type": "object"
+          },
+          "args_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Args Hash",
+            "type": "string"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "network_methods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Methods",
+            "type": "array"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Provider"
+          },
+          "requested_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "reversible": {
+            "title": "Reversible",
+            "type": "boolean"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          }
+        },
+        "required": [
+          "capability",
+          "args",
+          "args_hash",
+          "data_class",
+          "requested_effects",
+          "budget",
+          "risk_tier",
+          "reversible"
+        ],
+        "title": "ActionHashMaterial",
+        "type": "object"
+      },
+      "ActionReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "action_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Action Hash",
+            "type": "string"
+          },
+          "action_id": {
+            "format": "uuid",
+            "title": "Action Id",
+            "type": "string"
+          },
+          "actual_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "after_artifact_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "After Artifact Ids",
+            "type": "array"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActorRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "authorization_ref": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Authorization Ref",
+            "type": "string"
+          },
+          "authorization_source": {
+            "$ref": "#/components/schemas/AuthorizationSource"
+          },
+          "authorized_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "before_artifact_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Before Artifact Ids",
+            "type": "array"
+          },
+          "compensating_action_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Compensating Action Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "diff_artifact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Diff Artifact Id"
+          },
+          "effect_violation": {
+            "default": false,
+            "title": "Effect Violation",
+            "type": "boolean"
+          },
+          "exit_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Exit Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "resource_usage": {
+            "$ref": "#/components/schemas/ResourceUsage"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ReceiptResult"
+          },
+          "undo_ref": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Undo Ref"
+          }
+        },
+        "required": [
+          "id",
+          "action_id",
+          "action_hash",
+          "authorization_source",
+          "authorization_ref",
+          "authorized_effects",
+          "actual_effects",
+          "result",
+          "resource_usage",
+          "created_at"
+        ],
+        "title": "ActionReceipt",
+        "type": "object"
+      },
+      "ActionState": {
+        "enum": [
+          "proposed",
+          "waiting_approval",
+          "authorized",
+          "running",
+          "succeeded",
+          "failed",
+          "cancelled",
+          "timed_out",
+          "denied",
+          "expired",
+          "effect_unknown"
+        ],
+        "title": "ActionState",
+        "type": "string"
+      },
+      "ActorKind": {
+        "enum": [
+          "user",
+          "agent",
+          "system",
+          "tool"
+        ],
+        "title": "ActorKind",
+        "type": "string"
+      },
+      "ActorRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ActorKind"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Version"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ActorRef",
+        "type": "object"
+      },
+      "Approval": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_uses": {
+            "const": 1,
+            "default": 1,
+            "title": "Allowed Uses",
+            "type": "integer"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActorRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "parameter_summary": {
+            "additionalProperties": true,
+            "title": "Parameter Summary",
+            "type": "object"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Provider"
+          },
+          "requested_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "reversible": {
+            "title": "Reversible",
+            "type": "boolean"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          },
+          "subject_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Subject Hash",
+            "type": "string"
+          },
+          "subject_id": {
+            "format": "uuid",
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "pattern": "^(action|policy_grant)$",
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject_type",
+          "subject_id",
+          "subject_hash",
+          "capability",
+          "parameter_summary",
+          "requested_effects",
+          "data_class",
+          "budget",
+          "risk_tier",
+          "reversible",
+          "expires_at",
+          "decision"
+        ],
+        "title": "Approval",
+        "type": "object"
+      },
+      "ApprovalDecision": {
+        "enum": [
+          "requested",
+          "approved",
+          "denied",
+          "expired"
+        ],
+        "title": "ApprovalDecision",
+        "type": "string"
+      },
+      "Artifact": {
+        "additionalProperties": false,
+        "properties": {
+          "blob_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Blob Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "producer_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Producer Run Id"
+          },
+          "retention": {
+            "additionalProperties": true,
+            "title": "Retention",
+            "type": "object"
+          },
+          "size": {
+            "minimum": 0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ArtifactState"
+          }
+        },
+        "required": [
+          "id",
+          "media_type",
+          "blob_hash",
+          "size",
+          "state",
+          "retention",
+          "created_at"
+        ],
+        "title": "Artifact",
+        "type": "object"
+      },
+      "ArtifactCommittedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Action Id"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "aggregate_id": {
+            "format": "uuid",
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "aggregate_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Aggregate Type",
+            "type": "string"
+          },
+          "aggregate_version": {
+            "minimum": 1,
+            "title": "Aggregate Version",
+            "type": "integer"
+          },
+          "causation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Causation Id"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Correlation Id"
+          },
+          "id": {
+            "minimum": 1,
+            "title": "Id",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ArtifactCommittedPayload"
+          },
+          "payload_artifact_id": {
+            "const": null,
+            "default": null,
+            "title": "Payload Artifact Id",
+            "type": "null"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "run_seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Seq"
+          },
+          "type": {
+            "const": "artifact.committed",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "aggregate_type",
+          "aggregate_id",
+          "aggregate_version",
+          "actor",
+          "type",
+          "payload",
+          "occurred_at"
+        ],
+        "title": "ArtifactCommittedEvent",
+        "type": "object"
+      },
+      "ArtifactCommittedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "format": "uuid",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "blob_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Blob Hash",
+            "type": "string"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "size": {
+            "minimum": 0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "state": {
+            "const": "available",
+            "default": "available",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "blob_hash",
+          "size",
+          "media_type"
+        ],
+        "title": "ArtifactCommittedPayload",
+        "type": "object"
+      },
+      "ArtifactReconciledEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Action Id"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "aggregate_id": {
+            "format": "uuid",
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "aggregate_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Aggregate Type",
+            "type": "string"
+          },
+          "aggregate_version": {
+            "minimum": 1,
+            "title": "Aggregate Version",
+            "type": "integer"
+          },
+          "causation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Causation Id"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Correlation Id"
+          },
+          "id": {
+            "minimum": 1,
+            "title": "Id",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ArtifactReconciledPayload"
+          },
+          "payload_artifact_id": {
+            "const": null,
+            "default": null,
+            "title": "Payload Artifact Id",
+            "type": "null"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "run_seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Seq"
+          },
+          "type": {
+            "const": "artifact.reconciled",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "aggregate_type",
+          "aggregate_id",
+          "aggregate_version",
+          "actor",
+          "type",
+          "payload",
+          "occurred_at"
+        ],
+        "title": "ArtifactReconciledEvent",
+        "type": "object"
+      },
+      "ArtifactReconciledPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "format": "uuid",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "previous_state": {
+            "$ref": "#/components/schemas/ArtifactState"
+          },
+          "reason_code": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ArtifactState"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "previous_state",
+          "state",
+          "reason_code"
+        ],
+        "title": "ArtifactReconciledPayload",
+        "type": "object"
+      },
+      "ArtifactStagedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Action Id"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "aggregate_id": {
+            "format": "uuid",
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "aggregate_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Aggregate Type",
+            "type": "string"
+          },
+          "aggregate_version": {
+            "minimum": 1,
+            "title": "Aggregate Version",
+            "type": "integer"
+          },
+          "causation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Causation Id"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Correlation Id"
+          },
+          "id": {
+            "minimum": 1,
+            "title": "Id",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ArtifactStagedPayload"
+          },
+          "payload_artifact_id": {
+            "const": null,
+            "default": null,
+            "title": "Payload Artifact Id",
+            "type": "null"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "run_seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Seq"
+          },
+          "type": {
+            "const": "artifact.staged",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "aggregate_type",
+          "aggregate_id",
+          "aggregate_version",
+          "actor",
+          "type",
+          "payload",
+          "occurred_at"
+        ],
+        "title": "ArtifactStagedEvent",
+        "type": "object"
+      },
+      "ArtifactStagedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "format": "uuid",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "blob_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Blob Hash",
+            "type": "string"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "size": {
+            "minimum": 0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "state": {
+            "const": "staged",
+            "default": "staged",
+            "title": "State",
+            "type": "string"
+          },
+          "temp_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Temp Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "temp_ref",
+          "blob_hash",
+          "size",
+          "media_type"
+        ],
+        "title": "ArtifactStagedPayload",
+        "type": "object"
+      },
+      "ArtifactState": {
+        "enum": [
+          "staged",
+          "available",
+          "failed",
+          "orphan_quarantined",
+          "corrupt",
+          "tombstoned",
+          "garbage_collected"
+        ],
+        "title": "ArtifactState",
+        "type": "string"
+      },
+      "AttachEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "excerpt_hash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Excerpt Hash"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "locator_id": {
+            "format": "uuid",
+            "title": "Locator Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "AttachEvidence",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "inquiry_id",
+          "locator_id",
+          "direction"
+        ],
+        "title": "AttachEvidence",
+        "type": "object"
+      },
+      "AuthorizationMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "matches": {
+            "title": "Matches",
+            "type": "boolean"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "matches"
+        ],
+        "title": "AuthorizationMatch",
+        "type": "object"
+      },
+      "AuthorizationSource": {
+        "enum": [
+          "auto_policy",
+          "policy_grant",
+          "approval"
+        ],
+        "title": "AuthorizationSource",
+        "type": "string"
+      },
+      "AuthorizeAction": {
+        "additionalProperties": false,
+        "properties": {
+          "action_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Action Hash",
+            "type": "string"
+          },
+          "action_id": {
+            "format": "uuid",
+            "title": "Action Id",
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "authorization_ref": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Authorization Ref",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "type": {
+            "const": "AuthorizeAction",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "action_id",
+          "action_hash",
+          "authorization_ref"
+        ],
+        "title": "AuthorizeAction",
+        "type": "object"
+      },
+      "BoundingBox": {
+        "additionalProperties": false,
+        "properties": {
+          "x0": {
+            "minimum": 0,
+            "title": "X0",
+            "type": "number"
+          },
+          "x1": {
+            "exclusiveMinimum": 0,
+            "title": "X1",
+            "type": "number"
+          },
+          "y0": {
+            "minimum": 0,
+            "title": "Y0",
+            "type": "number"
+          },
+          "y1": {
+            "exclusiveMinimum": 0,
+            "title": "Y1",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x0",
+          "y0",
+          "x1",
+          "y1"
+        ],
+        "title": "BoundingBox",
+        "type": "object"
+      },
+      "BudgetSnapshot": {
+        "additionalProperties": false,
+        "description": "Immutable limits frozen when a Run or authorization is created.",
+        "properties": {
+          "cpu_seconds": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cpu Seconds"
+          },
+          "gpu_seconds": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Gpu Seconds"
+          },
+          "max_actions": {
+            "exclusiveMinimum": 0,
+            "title": "Max Actions",
+            "type": "integer"
+          },
+          "max_artifact_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Max Artifact Bytes",
+            "type": "integer"
+          },
+          "max_concurrency": {
+            "exclusiveMinimum": 0,
+            "title": "Max Concurrency",
+            "type": "integer"
+          },
+          "max_cost_micros": {
+            "minimum": 0,
+            "title": "Max Cost Micros",
+            "type": "integer"
+          },
+          "max_download_bytes": {
+            "minimum": 0,
+            "title": "Max Download Bytes",
+            "type": "integer"
+          },
+          "max_model_calls": {
+            "minimum": 0,
+            "title": "Max Model Calls",
+            "type": "integer"
+          },
+          "max_model_tokens": {
+            "minimum": 0,
+            "title": "Max Model Tokens",
+            "type": "integer"
+          },
+          "max_output_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Max Output Bytes",
+            "type": "integer"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "title": "Max Retries",
+            "type": "integer"
+          },
+          "memory_bytes": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Memory Bytes"
+          },
+          "network_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Targets",
+            "type": "array"
+          },
+          "read_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Read Roots",
+            "type": "array"
+          },
+          "wall_clock_seconds": {
+            "exclusiveMinimum": 0,
+            "title": "Wall Clock Seconds",
+            "type": "integer"
+          },
+          "write_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Write Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "wall_clock_seconds",
+          "max_actions",
+          "max_concurrency",
+          "max_model_calls",
+          "max_model_tokens",
+          "max_cost_micros",
+          "max_retries",
+          "max_output_bytes",
+          "max_artifact_bytes",
+          "max_download_bytes"
+        ],
+        "title": "BudgetSnapshot",
+        "type": "object"
+      },
+      "ByteSpan": {
+        "additionalProperties": false,
+        "properties": {
+          "end_byte": {
+            "exclusiveMinimum": 0,
+            "title": "End Byte",
+            "type": "integer"
+          },
+          "start_byte": {
+            "minimum": 0,
+            "title": "Start Byte",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start_byte",
+          "end_byte"
+        ],
+        "title": "ByteSpan",
+        "type": "object"
+      },
+      "CancelRun": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "CancelRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "CancelRun",
+        "type": "object"
+      },
+      "CapabilityAuthorizationMode": {
+        "enum": [
+          "auto_policy",
+          "policy_grant",
+          "one_time_approval"
+        ],
+        "title": "CapabilityAuthorizationMode",
+        "type": "string"
+      },
+      "CapabilityConstraints": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_data_classes": {
+            "items": {
+              "$ref": "#/components/schemas/DataClass"
+            },
+            "minItems": 1,
+            "title": "Allowed Data Classes",
+            "type": "array"
+          },
+          "allowed_providers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Providers",
+            "type": "array"
+          },
+          "args_schema": {
+            "additionalProperties": true,
+            "title": "Args Schema",
+            "type": "object"
+          },
+          "cumulative_budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "max_concurrency": {
+            "exclusiveMinimum": 0,
+            "title": "Max Concurrency",
+            "type": "integer"
+          },
+          "max_uses": {
+            "exclusiveMinimum": 0,
+            "title": "Max Uses",
+            "type": "integer"
+          },
+          "network_methods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Methods",
+            "type": "array"
+          },
+          "network_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Targets",
+            "type": "array"
+          },
+          "per_action_budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "process_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Process Targets",
+            "type": "array"
+          },
+          "read_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Read Roots",
+            "type": "array"
+          },
+          "revoke_conditions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Revoke Conditions",
+            "type": "array"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "write_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Write Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "args_schema",
+          "allowed_data_classes",
+          "per_action_budget",
+          "cumulative_budget",
+          "max_concurrency",
+          "max_uses",
+          "valid_from",
+          "expires_at"
+        ],
+        "title": "CapabilityConstraints",
+        "type": "object"
+      },
+      "CapabilityDefaultEffect": {
+        "enum": [
+          "reversible",
+          "effect_unknown"
+        ],
+        "title": "CapabilityDefaultEffect",
+        "type": "string"
+      },
+      "CapabilityProviderMode": {
+        "enum": [
+          "forbidden",
+          "optional",
+          "required"
+        ],
+        "title": "CapabilityProviderMode",
+        "type": "string"
+      },
+      "CapabilityRef": {
+        "additionalProperties": false,
+        "description": "Executable Capability identity pinned to an implementation digest.",
+        "properties": {
+          "digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Digest",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "digest"
+        ],
+        "title": "CapabilityRef",
+        "type": "object"
+      },
+      "CapabilityRegistryEntry": {
+        "additionalProperties": false,
+        "description": "Registry truth for a pinned executable Capability implementation.",
+        "properties": {
+          "allowed_providers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Providers",
+            "type": "array"
+          },
+          "args_schema": {
+            "additionalProperties": true,
+            "title": "Args Schema",
+            "type": "object"
+          },
+          "authorization_mode": {
+            "$ref": "#/components/schemas/CapabilityAuthorizationMode"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "contract_digest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Contract Digest"
+          },
+          "default_effect": {
+            "$ref": "#/components/schemas/CapabilityDefaultEffect",
+            "default": "effect_unknown"
+          },
+          "env_keys": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Env Keys",
+            "type": "array"
+          },
+          "grantable": {
+            "title": "Grantable",
+            "type": "boolean"
+          },
+          "network_methods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Methods",
+            "type": "array"
+          },
+          "network_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Targets",
+            "type": "array"
+          },
+          "process_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Process Targets",
+            "type": "array"
+          },
+          "provider_mode": {
+            "$ref": "#/components/schemas/CapabilityProviderMode",
+            "default": "forbidden"
+          },
+          "read_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Read Roots",
+            "type": "array"
+          },
+          "reversible": {
+            "title": "Reversible",
+            "type": "boolean"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Timeout Seconds"
+          },
+          "write_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Write Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "capability",
+          "args_schema",
+          "risk_tier",
+          "reversible",
+          "authorization_mode",
+          "grantable"
+        ],
+        "title": "CapabilityRegistryEntry",
+        "type": "object"
+      },
+      "CharacterSpan": {
+        "additionalProperties": false,
+        "properties": {
+          "end_char": {
+            "exclusiveMinimum": 0,
+            "title": "End Char",
+            "type": "integer"
+          },
+          "start_char": {
+            "minimum": 0,
+            "title": "Start Char",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start_char",
+          "end_char"
+        ],
+        "title": "CharacterSpan",
+        "type": "object"
+      },
+      "Claim": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ClaimStatus"
+          }
+        },
+        "required": [
+          "id",
+          "inquiry_id",
+          "statement",
+          "status",
+          "revision",
+          "created_by"
+        ],
+        "title": "Claim",
+        "type": "object"
+      },
+      "ClaimStatus": {
+        "enum": [
+          "draft",
+          "in_review",
+          "verified",
+          "contested",
+          "rejected",
+          "superseded"
+        ],
+        "title": "ClaimStatus",
+        "type": "string"
+      },
+      "CodeSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "commit_ref": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Commit Ref"
+          },
+          "diff_hash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Diff Hash"
+          },
+          "dirty": {
+            "title": "Dirty",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dirty"
+        ],
+        "title": "CodeSnapshot",
+        "type": "object"
+      },
+      "CommandResult": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_revisions": {
+            "additionalProperties": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "title": "Affected Revisions",
+            "type": "object"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "event_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Event Ids",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CommandStatus"
+          }
+        },
+        "required": [
+          "command_id",
+          "status",
+          "affected_revisions",
+          "event_ids"
+        ],
+        "title": "CommandResult",
+        "type": "object"
+      },
+      "CommandStatus": {
+        "enum": [
+          "accepted",
+          "rejected",
+          "replayed"
+        ],
+        "title": "CommandStatus",
+        "type": "string"
+      },
+      "CommitArtifact": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "artifact_id": {
+            "format": "uuid",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "blob_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Blob Hash",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "producer_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Producer Run Id"
+          },
+          "retention": {
+            "additionalProperties": true,
+            "title": "Retention",
+            "type": "object"
+          },
+          "size": {
+            "minimum": 0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "staged_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Staged Ref",
+            "type": "string"
+          },
+          "type": {
+            "const": "CommitArtifact",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "artifact_id",
+          "staged_ref",
+          "blob_hash",
+          "size",
+          "media_type",
+          "retention"
+        ],
+        "title": "CommitArtifact",
+        "type": "object"
+      },
+      "ContractCatalogInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "command_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command Names",
+            "type": "array"
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Event Types",
+            "type": "array"
+          },
+          "locator_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Locator Kinds",
+            "type": "array"
+          },
+          "relation_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Relation Types",
+            "type": "array"
+          },
+          "schema_hash": {
+            "title": "Schema Hash",
+            "type": "string"
+          },
+          "schema_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Schema Names",
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema_hash",
+          "schema_names",
+          "command_names",
+          "event_types",
+          "locator_kinds",
+          "relation_types"
+        ],
+        "title": "ContractCatalogInfo",
+        "type": "object"
+      },
+      "ContractCatalogSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Action"
+          },
+          "action_hash_material": {
+            "$ref": "#/components/schemas/ActionHashMaterial"
+          },
+          "action_receipt": {
+            "$ref": "#/components/schemas/ActionReceipt"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/Approval"
+          },
+          "artifact": {
+            "$ref": "#/components/schemas/Artifact"
+          },
+          "artifact_lifecycle_event": {
+            "discriminator": {
+              "mapping": {
+                "artifact.committed": "#/components/schemas/ArtifactCommittedEvent",
+                "artifact.reconciled": "#/components/schemas/ArtifactReconciledEvent",
+                "artifact.staged": "#/components/schemas/ArtifactStagedEvent"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ArtifactStagedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ArtifactCommittedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ArtifactReconciledEvent"
+              }
+            ],
+            "title": "Artifact Lifecycle Event"
+          },
+          "authorization_match": {
+            "$ref": "#/components/schemas/AuthorizationMatch"
+          },
+          "capability_registry_entry": {
+            "$ref": "#/components/schemas/CapabilityRegistryEntry"
+          },
+          "claim": {
+            "$ref": "#/components/schemas/Claim"
+          },
+          "command": {
+            "discriminator": {
+              "mapping": {
+                "AttachEvidence": "#/components/schemas/AttachEvidence",
+                "AuthorizeAction": "#/components/schemas/AuthorizeAction",
+                "CancelRun": "#/components/schemas/CancelRun",
+                "CommitArtifact": "#/components/schemas/CommitArtifact",
+                "CreateClaim": "#/components/schemas/CreateClaim",
+                "CreateHypothesis": "#/components/schemas/CreateHypothesis",
+                "CreateInquiry": "#/components/schemas/CreateInquiry",
+                "CreateLocator": "#/components/schemas/CreateLocator",
+                "CreatePolicyGrant": "#/components/schemas/CreatePolicyGrant",
+                "CreateProject": "#/components/schemas/CreateProject",
+                "CreateRelation": "#/components/schemas/CreateRelation",
+                "DecideApproval": "#/components/schemas/DecideApproval",
+                "DraftFinding": "#/components/schemas/DraftFinding",
+                "PauseRun": "#/components/schemas/PauseRun",
+                "ProposeAction": "#/components/schemas/ProposeAction",
+                "ProposePlan": "#/components/schemas/ProposePlan",
+                "PublishExport": "#/components/schemas/PublishExport",
+                "RegisterResource": "#/components/schemas/RegisterResource",
+                "RequestApproval": "#/components/schemas/RequestApproval",
+                "ResumeRun": "#/components/schemas/ResumeRun",
+                "RevisePlan": "#/components/schemas/RevisePlan",
+                "RevokePolicyGrant": "#/components/schemas/RevokePolicyGrant",
+                "StartRun": "#/components/schemas/StartRun"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CreateProject"
+              },
+              {
+                "$ref": "#/components/schemas/CreateInquiry"
+              },
+              {
+                "$ref": "#/components/schemas/ProposePlan"
+              },
+              {
+                "$ref": "#/components/schemas/RevisePlan"
+              },
+              {
+                "$ref": "#/components/schemas/StartRun"
+              },
+              {
+                "$ref": "#/components/schemas/PauseRun"
+              },
+              {
+                "$ref": "#/components/schemas/ResumeRun"
+              },
+              {
+                "$ref": "#/components/schemas/CancelRun"
+              },
+              {
+                "$ref": "#/components/schemas/ProposeAction"
+              },
+              {
+                "$ref": "#/components/schemas/CreatePolicyGrant"
+              },
+              {
+                "$ref": "#/components/schemas/RevokePolicyGrant"
+              },
+              {
+                "$ref": "#/components/schemas/RequestApproval"
+              },
+              {
+                "$ref": "#/components/schemas/DecideApproval"
+              },
+              {
+                "$ref": "#/components/schemas/AuthorizeAction"
+              },
+              {
+                "$ref": "#/components/schemas/CommitArtifact"
+              },
+              {
+                "$ref": "#/components/schemas/RegisterResource"
+              },
+              {
+                "$ref": "#/components/schemas/CreateLocator"
+              },
+              {
+                "$ref": "#/components/schemas/CreateClaim"
+              },
+              {
+                "$ref": "#/components/schemas/AttachEvidence"
+              },
+              {
+                "$ref": "#/components/schemas/CreateHypothesis"
+              },
+              {
+                "$ref": "#/components/schemas/DraftFinding"
+              },
+              {
+                "$ref": "#/components/schemas/CreateRelation"
+              },
+              {
+                "$ref": "#/components/schemas/PublishExport"
+              }
+            ],
+            "title": "Command"
+          },
+          "command_result": {
+            "$ref": "#/components/schemas/CommandResult"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/Decision"
+          },
+          "error_response": {
+            "$ref": "#/components/schemas/ErrorResponse"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence"
+          },
+          "finding": {
+            "$ref": "#/components/schemas/Finding"
+          },
+          "grant_match_context": {
+            "$ref": "#/components/schemas/GrantMatchContext"
+          },
+          "hypothesis": {
+            "$ref": "#/components/schemas/Hypothesis"
+          },
+          "inquiry": {
+            "$ref": "#/components/schemas/Inquiry"
+          },
+          "locator": {
+            "$ref": "#/components/schemas/Locator"
+          },
+          "method": {
+            "$ref": "#/components/schemas/Method"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "policy_grant": {
+            "$ref": "#/components/schemas/PolicyGrant"
+          },
+          "project": {
+            "$ref": "#/components/schemas/Project"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/Resource"
+          },
+          "run": {
+            "$ref": "#/components/schemas/Run"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/Workspace"
+          }
+        },
+        "required": [
+          "command",
+          "command_result",
+          "error_response",
+          "action_hash_material",
+          "capability_registry_entry",
+          "grant_match_context",
+          "authorization_match",
+          "workspace",
+          "project",
+          "inquiry",
+          "plan",
+          "run",
+          "action",
+          "event",
+          "policy_grant",
+          "approval",
+          "action_receipt",
+          "artifact",
+          "artifact_lifecycle_event",
+          "resource",
+          "locator",
+          "claim",
+          "evidence",
+          "hypothesis",
+          "method",
+          "finding",
+          "decision",
+          "relation"
+        ],
+        "title": "ContractCatalogSchema",
+        "type": "object"
+      },
+      "CreateClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateClaim",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "inquiry_id",
+          "statement"
+        ],
+        "title": "CreateClaim",
+        "type": "object"
+      },
+      "CreateHypothesis": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "falsification_criteria": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Falsification Criteria",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateHypothesis",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "inquiry_id",
+          "statement",
+          "falsification_criteria"
+        ],
+        "title": "CreateHypothesis",
+        "type": "object"
+      },
+      "CreateInquiry": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptance": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Acceptance",
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateInquiry",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "project_id",
+          "question",
+          "acceptance"
+        ],
+        "title": "CreateInquiry",
+        "type": "object"
+      },
+      "CreateLocator": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "coordinates": {
+            "discriminator": {
+              "mapping": {
+                "dataset": "#/components/schemas/DatasetCoordinates",
+                "local_file": "#/components/schemas/LocalFileCoordinates",
+                "pdf": "#/components/schemas/PdfCoordinates",
+                "repo": "#/components/schemas/RepoCoordinates",
+                "run_output": "#/components/schemas/RunOutputCoordinates",
+                "web": "#/components/schemas/WebCoordinates"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/PdfCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/RepoCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/LocalFileCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/DatasetCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/RunOutputCoordinates"
+              }
+            ],
+            "title": "Coordinates"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "locator_type": {
+            "pattern": "^(web|pdf|repo|local_file|dataset|run_output)$",
+            "title": "Locator Type",
+            "type": "string"
+          },
+          "quote_hash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quote Hash"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateLocator",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "resource_id",
+          "locator_type",
+          "coordinates"
+        ],
+        "title": "CreateLocator",
+        "type": "object"
+      },
+      "CreatePolicyGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/CapabilityConstraints"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreatePolicyGrant",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "project_id",
+          "capability",
+          "constraints"
+        ],
+        "title": "CreatePolicyGrant",
+        "type": "object"
+      },
+      "CreateProject": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateProject",
+            "title": "Type",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "workspace_id",
+          "title",
+          "data_class"
+        ],
+        "title": "CreateProject",
+        "type": "object"
+      },
+      "CreateRelation": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "relation_type": {
+            "$ref": "#/components/schemas/RelationType"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Source Type",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Target Type",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateRelation",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "relation_type",
+          "source_type",
+          "source_id",
+          "target_type",
+          "target_id"
+        ],
+        "title": "CreateRelation",
+        "type": "object"
+      },
+      "DataClass": {
+        "enum": [
+          "public",
+          "personal",
+          "confidential",
+          "secret"
+        ],
+        "title": "DataClass",
+        "type": "string"
+      },
+      "DatasetCoordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "content_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "dataset": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Dataset",
+            "type": "string"
+          },
+          "kind": {
+            "const": "dataset",
+            "default": "dataset",
+            "title": "Kind",
+            "type": "string"
+          },
+          "row_end": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row End"
+          },
+          "row_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Key"
+          },
+          "row_start": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Start"
+          },
+          "split": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Split"
+          },
+          "version": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset",
+          "version",
+          "content_hash"
+        ],
+        "title": "DatasetCoordinates",
+        "type": "object"
+      },
+      "DecideApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approved",
+              "denied"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "subject_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Subject Hash",
+            "type": "string"
+          },
+          "type": {
+            "const": "DecideApproval",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "approval_id",
+          "subject_hash",
+          "decision"
+        ],
+        "title": "DecideApproval",
+        "type": "object"
+      },
+      "Decision": {
+        "additionalProperties": false,
+        "properties": {
+          "alternatives": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Alternatives",
+            "type": "array"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Confirmed At"
+          },
+          "confirmed_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActorRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "reevaluate_when": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Reevaluate When",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DecisionStatus"
+          }
+        },
+        "required": [
+          "id",
+          "inquiry_id",
+          "statement",
+          "alternatives",
+          "limitations",
+          "reevaluate_when",
+          "status",
+          "revision"
+        ],
+        "title": "Decision",
+        "type": "object"
+      },
+      "DecisionStatus": {
+        "enum": [
+          "draft",
+          "in_review",
+          "confirmed",
+          "rejected",
+          "superseded"
+        ],
+        "title": "DecisionStatus",
+        "type": "string"
+      },
+      "Direction": {
+        "enum": [
+          "supports",
+          "opposes",
+          "limits"
+        ],
+        "title": "Direction",
+        "type": "string"
+      },
+      "DraftFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "confidence_basis": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Confidence Basis",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "terminal_run_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Terminal Run Ids",
+            "type": "array"
+          },
+          "type": {
+            "const": "DraftFinding",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "inquiry_id",
+          "statement",
+          "confidence_basis"
+        ],
+        "title": "DraftFinding",
+        "type": "object"
+      },
+      "EffectScope": {
+        "additionalProperties": false,
+        "properties": {
+          "network": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network",
+            "type": "array"
+          },
+          "processes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Processes",
+            "type": "array"
+          },
+          "reads": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Reads",
+            "type": "array"
+          },
+          "writes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Writes",
+            "type": "array"
+          }
+        },
+        "title": "EffectScope",
+        "type": "object"
+      },
+      "EnvironmentSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "dependency_lock_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Dependency Lock Hash",
+            "type": "string"
+          },
+          "environment_keys": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Environment Keys",
+            "type": "array"
+          },
+          "os_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Os Name",
+            "type": "string"
+          },
+          "os_version": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Os Version",
+            "type": "string"
+          },
+          "python_version": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Python Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "os_name",
+          "os_version",
+          "python_version",
+          "dependency_lock_hash"
+        ],
+        "title": "EnvironmentSnapshot",
+        "type": "object"
+      },
+      "ErrorCategory": {
+        "enum": [
+          "input",
+          "conflict",
+          "permission",
+          "policy",
+          "budget",
+          "network",
+          "parser",
+          "tool",
+          "environment",
+          "storage",
+          "internal"
+        ],
+        "title": "ErrorCategory",
+        "type": "string"
+      },
+      "ErrorCode": {
+        "enum": [
+          "E_VALIDATION",
+          "E_STATE_TRANSITION",
+          "E_REVISION_CONFLICT",
+          "E_COMMAND_REPLAY_CONFLICT",
+          "E_CAPABILITY_UNKNOWN",
+          "E_POLICY_DENIED",
+          "E_BUDGET_EXCEEDED",
+          "E_APPROVAL_INVALID",
+          "E_APPROVAL_EXPIRED",
+          "E_ACTION_HASH_MISMATCH",
+          "E_LOCATOR_INVALID",
+          "E_REL_UNKNOWN",
+          "E_REL_INVALID",
+          "E_SCHEMA_TOO_NEW",
+          "E_SCHEMA_INCOMPATIBLE",
+          "E_ARTIFACT_UNAVAILABLE",
+          "E_INTERNAL"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/StructuredError"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "Event": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Action Id"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "aggregate_id": {
+            "format": "uuid",
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "aggregate_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Aggregate Type",
+            "type": "string"
+          },
+          "aggregate_version": {
+            "minimum": 1,
+            "title": "Aggregate Version",
+            "type": "integer"
+          },
+          "causation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Causation Id"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Correlation Id"
+          },
+          "id": {
+            "minimum": 1,
+            "title": "Id",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payload"
+          },
+          "payload_artifact_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payload Artifact Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "run_seq": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Seq"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EventType"
+          }
+        },
+        "required": [
+          "id",
+          "aggregate_type",
+          "aggregate_id",
+          "aggregate_version",
+          "actor",
+          "type",
+          "occurred_at"
+        ],
+        "title": "Event",
+        "type": "object"
+      },
+      "EventType": {
+        "enum": [
+          "workspace.created",
+          "project.created",
+          "project.status_changed",
+          "inquiry.created",
+          "inquiry.status_changed",
+          "plan.proposed",
+          "plan.revised",
+          "plan.status_changed",
+          "run.created",
+          "run.started",
+          "run.heartbeat",
+          "run.paused",
+          "run.cancelled",
+          "run.timed_out",
+          "run.failed",
+          "run.succeeded",
+          "run.budget_exceeded",
+          "run.orphaned",
+          "plan.step.started",
+          "plan.step.completed",
+          "plan.step.failed",
+          "action.proposed",
+          "action.authorized",
+          "action.started",
+          "action.output",
+          "action.completed",
+          "action.cancelled",
+          "action.effect_unknown",
+          "artifact.staged",
+          "artifact.committed",
+          "artifact.reconciled",
+          "budget.updated",
+          "budget.threshold_reached",
+          "policy_grant.created",
+          "policy_grant.revoked",
+          "policy_grant.expired",
+          "approval.requested",
+          "approval.decided",
+          "approval.expired",
+          "resource.registered",
+          "locator.created",
+          "claim.created",
+          "evidence.attached",
+          "hypothesis.created",
+          "finding.drafted",
+          "relation.created",
+          "export.published"
+        ],
+        "title": "EventType",
+        "type": "string"
+      },
+      "Evidence": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "excerpt_hash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Excerpt Hash"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "locator_id": {
+            "format": "uuid",
+            "title": "Locator Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EvidenceStatus"
+          }
+        },
+        "required": [
+          "id",
+          "inquiry_id",
+          "locator_id",
+          "direction",
+          "status",
+          "created_by"
+        ],
+        "title": "Evidence",
+        "type": "object"
+      },
+      "EvidenceStatus": {
+        "enum": [
+          "lead",
+          "valid",
+          "rejected",
+          "stale",
+          "source_unavailable",
+          "tombstoned"
+        ],
+        "title": "EvidenceStatus",
+        "type": "string"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_basis": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Confidence Basis",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "producer_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Producer Run Id"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus"
+          }
+        },
+        "required": [
+          "id",
+          "inquiry_id",
+          "statement",
+          "status",
+          "confidence_basis",
+          "revision"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "FindingStatus": {
+        "enum": [
+          "draft",
+          "in_review",
+          "accepted",
+          "rejected",
+          "superseded"
+        ],
+        "title": "FindingStatus",
+        "type": "string"
+      },
+      "GrantMatchContext": {
+        "additionalProperties": false,
+        "description": "State supplied by the policy engine without defining runtime accounting.",
+        "properties": {
+          "current_concurrency": {
+            "minimum": 0,
+            "title": "Current Concurrency",
+            "type": "integer"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "projected_cumulative_budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          }
+        },
+        "required": [
+          "project_id",
+          "projected_cumulative_budget",
+          "current_concurrency"
+        ],
+        "title": "GrantMatchContext",
+        "type": "object"
+      },
+      "HandshakeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "api_version": {
+            "title": "Api Version",
+            "type": "string"
+          },
+          "app_version": {
+            "title": "App Version",
+            "type": "string"
+          },
+          "mode": {
+            "const": "development_contract_only",
+            "default": "development_contract_only",
+            "title": "Mode",
+            "type": "string"
+          },
+          "mutations_enabled": {
+            "const": false,
+            "default": false,
+            "title": "Mutations Enabled",
+            "type": "boolean"
+          },
+          "schema_read_ceiling": {
+            "title": "Schema Read Ceiling",
+            "type": "integer"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "app_version",
+          "api_version",
+          "schema_version",
+          "schema_read_ceiling"
+        ],
+        "title": "HandshakeResponse",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "Hypothesis": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "falsification_criteria": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Falsification Criteria",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HypothesisStatus"
+          }
+        },
+        "required": [
+          "id",
+          "inquiry_id",
+          "statement",
+          "falsification_criteria",
+          "status",
+          "created_by"
+        ],
+        "title": "Hypothesis",
+        "type": "object"
+      },
+      "HypothesisStatus": {
+        "enum": [
+          "proposed",
+          "testing",
+          "supported",
+          "falsified",
+          "inconclusive",
+          "superseded"
+        ],
+        "title": "HypothesisStatus",
+        "type": "string"
+      },
+      "Inquiry": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptance": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Acceptance",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InquiryStatus",
+            "default": "draft"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "question",
+          "acceptance",
+          "revision",
+          "created_at"
+        ],
+        "title": "Inquiry",
+        "type": "object"
+      },
+      "InquiryStatus": {
+        "enum": [
+          "draft",
+          "ready",
+          "active",
+          "blocked",
+          "in_review",
+          "decided",
+          "cancelled",
+          "closed"
+        ],
+        "title": "InquiryStatus",
+        "type": "string"
+      },
+      "LineSpan": {
+        "additionalProperties": false,
+        "properties": {
+          "end_line": {
+            "minimum": 1,
+            "title": "End Line",
+            "type": "integer"
+          },
+          "start_line": {
+            "minimum": 1,
+            "title": "Start Line",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start_line",
+          "end_line"
+        ],
+        "title": "LineSpan",
+        "type": "object"
+      },
+      "LocalFileCoordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Artifact Hash",
+            "type": "string"
+          },
+          "byte_span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ByteSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "kind": {
+            "const": "local_file",
+            "default": "local_file",
+            "title": "Kind",
+            "type": "string"
+          },
+          "line_span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "logical_path": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Logical Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_hash",
+          "logical_path"
+        ],
+        "title": "LocalFileCoordinates",
+        "type": "object"
+      },
+      "Locator": {
+        "additionalProperties": false,
+        "properties": {
+          "coordinates": {
+            "discriminator": {
+              "mapping": {
+                "dataset": "#/components/schemas/DatasetCoordinates",
+                "local_file": "#/components/schemas/LocalFileCoordinates",
+                "pdf": "#/components/schemas/PdfCoordinates",
+                "repo": "#/components/schemas/RepoCoordinates",
+                "run_output": "#/components/schemas/RunOutputCoordinates",
+                "web": "#/components/schemas/WebCoordinates"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/PdfCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/RepoCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/LocalFileCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/DatasetCoordinates"
+              },
+              {
+                "$ref": "#/components/schemas/RunOutputCoordinates"
+              }
+            ],
+            "title": "Coordinates"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "locator_type": {
+            "pattern": "^(web|pdf|repo|local_file|dataset|run_output)$",
+            "title": "Locator Type",
+            "type": "string"
+          },
+          "parser_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parser Id"
+          },
+          "parser_version": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parser Version"
+          },
+          "quote_hash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quote Hash"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LocatorStatus"
+          }
+        },
+        "required": [
+          "id",
+          "resource_id",
+          "locator_type",
+          "coordinates",
+          "status",
+          "revision"
+        ],
+        "title": "Locator",
+        "type": "object"
+      },
+      "LocatorStatus": {
+        "enum": [
+          "draft",
+          "valid",
+          "invalid",
+          "stale",
+          "source_unavailable",
+          "tombstoned"
+        ],
+        "title": "LocatorStatus",
+        "type": "string"
+      },
+      "Method": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "preconditions": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Preconditions",
+            "type": "string"
+          },
+          "procedure_artifact_id": {
+            "format": "uuid",
+            "title": "Procedure Artifact Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MethodStatus"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "preconditions",
+          "procedure_artifact_id",
+          "status",
+          "revision",
+          "created_by"
+        ],
+        "title": "Method",
+        "type": "object"
+      },
+      "MethodStatus": {
+        "enum": [
+          "draft",
+          "validated",
+          "deprecated",
+          "superseded"
+        ],
+        "title": "MethodStatus",
+        "type": "string"
+      },
+      "PauseRun": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "PauseRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "PauseRun",
+        "type": "object"
+      },
+      "PdfCoordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Artifact Hash",
+            "type": "string"
+          },
+          "bounding_box": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BoundingBox"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "character_span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CharacterSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "kind": {
+            "const": "pdf",
+            "default": "pdf",
+            "title": "Kind",
+            "type": "string"
+          },
+          "page": {
+            "minimum": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "parser_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Parser Id",
+            "type": "string"
+          },
+          "parser_version": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Parser Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_hash",
+          "page",
+          "parser_id",
+          "parser_version"
+        ],
+        "title": "PdfCoordinates",
+        "type": "object"
+      },
+      "Plan": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStatus"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "inquiry_id",
+          "revision",
+          "status",
+          "steps",
+          "policy",
+          "budget",
+          "created_at"
+        ],
+        "title": "Plan",
+        "type": "object"
+      },
+      "PlanStatus": {
+        "enum": [
+          "draft",
+          "proposed",
+          "approved",
+          "running",
+          "completed",
+          "rejected",
+          "superseded"
+        ],
+        "title": "PlanStatus",
+        "type": "string"
+      },
+      "PlanStep": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_required": {
+            "default": false,
+            "title": "Approval Required",
+            "type": "boolean"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Capability Id"
+          },
+          "expected_artifacts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Expected Artifacts",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "PlanStep",
+        "type": "object"
+      },
+      "PolicyDecision": {
+        "enum": [
+          "auto",
+          "grant",
+          "approval_required",
+          "denied"
+        ],
+        "title": "PolicyDecision",
+        "type": "string"
+      },
+      "PolicyGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "constraints": {
+            "$ref": "#/components/schemas/CapabilityConstraints"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/PolicyGrantState"
+          },
+          "uses": {
+            "minimum": 0,
+            "title": "Uses",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "capability",
+          "constraints",
+          "state",
+          "uses",
+          "created_at"
+        ],
+        "title": "PolicyGrant",
+        "type": "object"
+      },
+      "PolicyGrantState": {
+        "enum": [
+          "proposed",
+          "active",
+          "rejected",
+          "revoked",
+          "expired",
+          "exhausted"
+        ],
+        "title": "PolicyGrantState",
+        "type": "string"
+      },
+      "Project": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus",
+            "default": "active"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "title",
+          "data_class",
+          "revision",
+          "created_at"
+        ],
+        "title": "Project",
+        "type": "object"
+      },
+      "ProjectStatus": {
+        "enum": [
+          "active",
+          "paused",
+          "archived"
+        ],
+        "title": "ProjectStatus",
+        "type": "string"
+      },
+      "ProposeAction": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "args_artifact_id": {
+            "format": "uuid",
+            "title": "Args Artifact Id",
+            "type": "string"
+          },
+          "args_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Args Hash",
+            "type": "string"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "plan_step_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Step Id"
+          },
+          "requested_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          },
+          "type": {
+            "const": "ProposeAction",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "capability",
+          "args_artifact_id",
+          "args_hash",
+          "requested_effects",
+          "risk_tier"
+        ],
+        "title": "ProposeAction",
+        "type": "object"
+      },
+      "ProposePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "type": {
+            "const": "ProposePlan",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "inquiry_id",
+          "steps",
+          "policy",
+          "budget"
+        ],
+        "title": "ProposePlan",
+        "type": "object"
+      },
+      "PublishExport": {
+        "additionalProperties": false,
+        "properties": {
+          "action_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Action Hash",
+            "type": "string"
+          },
+          "action_id": {
+            "format": "uuid",
+            "title": "Action Id",
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "artifact_id": {
+            "format": "uuid",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "destination_token": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Destination Token",
+            "type": "string"
+          },
+          "expected_media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Expected Media Type",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "PublishExport",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "project_id",
+          "artifact_id",
+          "destination_token",
+          "expected_media_type",
+          "action_id",
+          "action_hash"
+        ],
+        "title": "PublishExport",
+        "type": "object"
+      },
+      "ReceiptResult": {
+        "enum": [
+          "succeeded",
+          "failed",
+          "cancelled",
+          "timed_out",
+          "effect_unknown"
+        ],
+        "title": "ReceiptResult",
+        "type": "string"
+      },
+      "RegisterResource": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License"
+          },
+          "logical_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Logical Ref",
+            "type": "string"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "RegisterResource",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "project_id",
+          "kind",
+          "logical_ref",
+          "media_type",
+          "data_class"
+        ],
+        "title": "RegisterResource",
+        "type": "object"
+      },
+      "Relation": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "producer_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Producer Run Id"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationStatus"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Target Type",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RelationType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "source_type",
+          "source_id",
+          "target_type",
+          "target_id",
+          "created_by",
+          "status"
+        ],
+        "title": "Relation",
+        "type": "object"
+      },
+      "RelationStatus": {
+        "enum": [
+          "active",
+          "tombstoned"
+        ],
+        "title": "RelationStatus",
+        "type": "string"
+      },
+      "RelationType": {
+        "enum": [
+          "resource_contains_evidence",
+          "evidence_supports_claim",
+          "evidence_opposes_claim",
+          "evidence_limits_claim",
+          "hypothesis_tested_by_run",
+          "run_produces_artifact",
+          "run_produces_finding",
+          "finding_informs_decision",
+          "decision_accepts_method",
+          "artifact_derived_from_artifact",
+          "run_retry_of_run",
+          "object_supersedes_object"
+        ],
+        "title": "RelationType",
+        "type": "string"
+      },
+      "RepoCoordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-fA-F]{7,64}$",
+            "title": "Commit",
+            "type": "string"
+          },
+          "kind": {
+            "const": "repo",
+            "default": "repo",
+            "title": "Kind",
+            "type": "string"
+          },
+          "line_span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "path": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "remote": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Remote",
+            "type": "string"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Symbol"
+          }
+        },
+        "required": [
+          "remote",
+          "commit",
+          "path"
+        ],
+        "title": "RepoCoordinates",
+        "type": "object"
+      },
+      "RequestApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "allowed_uses": {
+            "const": 1,
+            "default": 1,
+            "title": "Allowed Uses",
+            "type": "integer"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "parameter_summary": {
+            "additionalProperties": true,
+            "title": "Parameter Summary",
+            "type": "object"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Provider"
+          },
+          "requested_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
+          "reversible": {
+            "title": "Reversible",
+            "type": "boolean"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          },
+          "subject_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Subject Hash",
+            "type": "string"
+          },
+          "subject_id": {
+            "format": "uuid",
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "subject_type": {
+            "pattern": "^(action|policy_grant)$",
+            "title": "Subject Type",
+            "type": "string"
+          },
+          "type": {
+            "const": "RequestApproval",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "subject_type",
+          "subject_id",
+          "subject_hash",
+          "capability",
+          "parameter_summary",
+          "requested_effects",
+          "data_class",
+          "budget",
+          "risk_tier",
+          "reversible",
+          "expires_at"
+        ],
+        "title": "RequestApproval",
+        "type": "object"
+      },
+      "Resource": {
+        "additionalProperties": false,
+        "properties": {
+          "captured_at": {
+            "format": "date-time",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Hash"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "License"
+          },
+          "logical_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Logical Ref",
+            "type": "string"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ResourceStatus"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "kind",
+          "logical_ref",
+          "media_type",
+          "data_class",
+          "captured_at",
+          "status",
+          "revision"
+        ],
+        "title": "Resource",
+        "type": "object"
+      },
+      "ResourceStatus": {
+        "enum": [
+          "draft",
+          "available",
+          "stale",
+          "failed",
+          "tombstoned"
+        ],
+        "title": "ResourceStatus",
+        "type": "string"
+      },
+      "ResourceUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_bytes": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Artifact Bytes",
+            "type": "integer"
+          },
+          "cost_micros": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Cost Micros",
+            "type": "integer"
+          },
+          "cpu_ms": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cpu Ms"
+          },
+          "model_tokens": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Model Tokens",
+            "type": "integer"
+          },
+          "output_bytes": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Output Bytes",
+            "type": "integer"
+          },
+          "peak_memory_bytes": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Peak Memory Bytes"
+          },
+          "wall_clock_ms": {
+            "minimum": 0,
+            "title": "Wall Clock Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "wall_clock_ms"
+        ],
+        "title": "ResourceUsage",
+        "type": "object"
+      },
+      "ResumeRun": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "ResumeRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "ResumeRun",
+        "type": "object"
+      },
+      "RevisePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "type": {
+            "const": "RevisePlan",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "plan_id",
+          "steps",
+          "policy",
+          "budget"
+        ],
+        "title": "RevisePlan",
+        "type": "object"
+      },
+      "RevokePolicyGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "policy_grant_id": {
+            "format": "uuid",
+            "title": "Policy Grant Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "type": {
+            "const": "RevokePolicyGrant",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "policy_grant_id",
+          "reason"
+        ],
+        "title": "RevokePolicyGrant",
+        "type": "object"
+      },
+      "RiskTier": {
+        "enum": [
+          "T0",
+          "T1",
+          "T2",
+          "T3",
+          "T4"
+        ],
+        "title": "RiskTier",
+        "type": "string"
+      },
+      "Run": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result"
+          },
+          "retry_of_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retry Of Run Id"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RunSnapshot"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RunState"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "inquiry_id",
+          "state",
+          "snapshot",
+          "created_at"
+        ],
+        "title": "Run",
+        "type": "object"
+      },
+      "RunOutputCoordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "format": "uuid",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "run_output",
+            "default": "run_output",
+            "title": "Kind",
+            "type": "string"
+          },
+          "line_span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "metric_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Key"
+          },
+          "record_key": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Key"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "artifact_id"
+        ],
+        "title": "RunOutputCoordinates",
+        "type": "object"
+      },
+      "RunSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "backend": {
+            "$ref": "#/components/schemas/VersionedRef"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityRef"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "code": {
+            "$ref": "#/components/schemas/CodeSnapshot"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentSnapshot"
+          },
+          "input_artifact_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Input Artifact Ids",
+            "type": "array"
+          },
+          "models": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/VersionedRef"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "plan_revision": {
+            "minimum": 1,
+            "title": "Plan Revision",
+            "type": "integer"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "random_seed": {
+            "title": "Random Seed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "plan_id",
+          "plan_revision",
+          "capabilities",
+          "backend",
+          "policy",
+          "budget",
+          "code",
+          "environment",
+          "random_seed"
+        ],
+        "title": "RunSnapshot",
+        "type": "object"
+      },
+      "RunState": {
+        "enum": [
+          "proposed",
+          "queued",
+          "running",
+          "paused",
+          "succeeded",
+          "failed",
+          "cancelled",
+          "timed_out",
+          "budget_exceeded",
+          "orphaned"
+        ],
+        "title": "RunState",
+        "type": "string"
+      },
+      "StartRun": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "backend": {
+            "$ref": "#/components/schemas/VersionedRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "plan_revision": {
+            "minimum": 1,
+            "title": "Plan Revision",
+            "type": "integer"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "random_seed": {
+            "title": "Random Seed",
+            "type": "integer"
+          },
+          "retry_of_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retry Of Run Id"
+          },
+          "type": {
+            "const": "StartRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "project_id",
+          "inquiry_id",
+          "plan_id",
+          "plan_revision",
+          "backend",
+          "random_seed"
+        ],
+        "title": "StartRun",
+        "type": "object"
+      },
+      "StructuredError": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ErrorCategory"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "data_safe": {
+            "title": "Data Safe",
+            "type": "boolean"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "suggested_actions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Actions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "message",
+          "retryable",
+          "data_safe"
+        ],
+        "title": "StructuredError",
+        "type": "object"
+      },
+      "VersionedRef": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Digest"
+          },
+          "id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ],
+        "title": "VersionedRef",
+        "type": "object"
+      },
+      "WebCoordinates": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical_url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Canonical Url",
+            "type": "string"
+          },
+          "content_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "dom_anchor": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Dom Anchor"
+          },
+          "kind": {
+            "const": "web",
+            "default": "web",
+            "title": "Kind",
+            "type": "string"
+          },
+          "quote_span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CharacterSpan"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "retrieved_at": {
+            "format": "date-time",
+            "title": "Retrieved At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "canonical_url",
+          "retrieved_at",
+          "content_hash"
+        ],
+        "title": "WebCoordinates",
+        "type": "object"
+      },
+      "Workspace": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "data_root": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Data Root",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "schema_version": {
+            "minimum": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkspaceStatus"
+          }
+        },
+        "required": [
+          "id",
+          "schema_version",
+          "data_root",
+          "policy",
+          "status",
+          "revision",
+          "created_at"
+        ],
+        "title": "Workspace",
+        "type": "object"
+      },
+      "WorkspaceStatus": {
+        "enum": [
+          "active",
+          "safe_mode",
+          "read_only"
+        ],
+        "title": "WorkspaceStatus",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "title": "Nana Sidecar",
+    "version": "0.3.0-dev"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/contracts": {
+      "get": {
+        "operationId": "contract_catalog_api_v1_contracts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractCatalogInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Contract Catalog",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/handshake": {
+      "get": {
+        "operationId": "handshake_api_v1_handshake_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandshakeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Handshake",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "health_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "system"
+        ]
+      }
+    }
+  }
+}

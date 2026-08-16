@@ -13,6 +13,7 @@ from uuid import UUID
 
 from nana_sidecar.runtime_app import create_runtime_app
 from nana_sidecar.sse import LocalSession, SQLiteEventStream
+from nana_sidecar.storage.workspace_lock import WorkspaceRuntime
 from nana_sidecar.storage import initialize_database
 
 
@@ -247,7 +248,10 @@ class D1RuntimeGateTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.database_path = Path(self.tempdir.name) / "nana.db"
-        self.connection = initialize_database(self.database_path)
+        self.workspace = WorkspaceRuntime(self.database_path)
+        self.workspace.start()
+        self.connection = self.workspace.connection
+        self.assertIsNotNone(self.connection)
         self._insert_fixture()
         stream = SQLiteEventStream(
             self.database_path,
@@ -255,12 +259,12 @@ class D1RuntimeGateTests(unittest.IsolatedAsyncioTestCase):
             batch_size=1024,
         )
         self.app = create_runtime_app(
-            event_stream=stream,
+            workspace_runtime=self.workspace,
             local_session=LocalSession(token=TOKEN, origin=ORIGIN),
         )
 
     async def asyncTearDown(self) -> None:
-        self.connection.close()
+        self.workspace.close()
         self.tempdir.cleanup()
 
     def _insert_fixture(self) -> None:

@@ -33,7 +33,7 @@
             "title": "Authorization Ref"
           },
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "finished_at": {
             "anyOf": [
@@ -138,7 +138,7 @@
             "$ref": "#/components/schemas/BudgetSnapshot"
           },
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "data_class": {
             "$ref": "#/components/schemas/DataClass"
@@ -247,6 +247,9 @@
           "authorization_source": {
             "$ref": "#/components/schemas/AuthorizationSource"
           },
+          "authorized_effects": {
+            "$ref": "#/components/schemas/EffectScope"
+          },
           "before_artifact_ids": {
             "default": [],
             "items": {
@@ -286,6 +289,11 @@
             ],
             "default": null,
             "title": "Diff Artifact Id"
+          },
+          "effect_violation": {
+            "default": false,
+            "title": "Effect Violation",
+            "type": "boolean"
           },
           "exit_code": {
             "anyOf": [
@@ -330,6 +338,7 @@
           "action_hash",
           "authorization_source",
           "authorization_ref",
+          "authorized_effects",
           "actual_effects",
           "result",
           "resource_usage",
@@ -410,7 +419,8 @@
         "additionalProperties": false,
         "properties": {
           "allowed_uses": {
-            "minimum": 1,
+            "const": 1,
+            "default": 1,
             "title": "Allowed Uses",
             "type": "integer"
           },
@@ -418,7 +428,7 @@
             "$ref": "#/components/schemas/BudgetSnapshot"
           },
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "data_class": {
             "$ref": "#/components/schemas/DataClass"
@@ -516,7 +526,6 @@
           "budget",
           "risk_tier",
           "reversible",
-          "allowed_uses",
           "expires_at",
           "decision"
         ],
@@ -1181,6 +1190,55 @@
         "title": "AttachEvidence",
         "type": "object"
       },
+      "AttachEvidenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "excerpt_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Excerpt Hash",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "locator_id": {
+            "format": "uuid",
+            "title": "Locator Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "AttachEvidence",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "inquiry_id",
+          "locator_id",
+          "direction",
+          "excerpt_hash"
+        ],
+        "title": "AttachEvidenceRequest",
+        "type": "object"
+      },
       "AuthorizationMatch": {
         "additionalProperties": false,
         "properties": {
@@ -1507,6 +1565,55 @@
         "title": "CancelRun",
         "type": "object"
       },
+      "CancelRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "CancelRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "CancelRunRequest",
+        "type": "object"
+      },
+      "CapabilityAuthorizationMode": {
+        "enum": [
+          "auto_policy",
+          "policy_grant",
+          "one_time_approval"
+        ],
+        "title": "CapabilityAuthorizationMode",
+        "type": "string"
+      },
       "CapabilityConstraints": {
         "additionalProperties": false,
         "properties": {
@@ -1568,6 +1675,14 @@
           "per_action_budget": {
             "$ref": "#/components/schemas/BudgetSnapshot"
           },
+          "process_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Process Targets",
+            "type": "array"
+          },
           "read_roots": {
             "default": [],
             "items": {
@@ -1609,6 +1724,181 @@
           "expires_at"
         ],
         "title": "CapabilityConstraints",
+        "type": "object"
+      },
+      "CapabilityDefaultEffect": {
+        "enum": [
+          "reversible",
+          "effect_unknown"
+        ],
+        "title": "CapabilityDefaultEffect",
+        "type": "string"
+      },
+      "CapabilityProviderMode": {
+        "enum": [
+          "forbidden",
+          "optional",
+          "required"
+        ],
+        "title": "CapabilityProviderMode",
+        "type": "string"
+      },
+      "CapabilityRef": {
+        "additionalProperties": false,
+        "description": "Executable Capability identity pinned to an implementation digest.",
+        "properties": {
+          "digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Digest",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "digest"
+        ],
+        "title": "CapabilityRef",
+        "type": "object"
+      },
+      "CapabilityRegistryEntry": {
+        "additionalProperties": false,
+        "description": "Registry truth for a pinned executable Capability implementation.",
+        "properties": {
+          "allowed_providers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Providers",
+            "type": "array"
+          },
+          "args_schema": {
+            "additionalProperties": true,
+            "title": "Args Schema",
+            "type": "object"
+          },
+          "authorization_mode": {
+            "$ref": "#/components/schemas/CapabilityAuthorizationMode"
+          },
+          "capability": {
+            "$ref": "#/components/schemas/CapabilityRef"
+          },
+          "contract_digest": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Contract Digest"
+          },
+          "default_effect": {
+            "$ref": "#/components/schemas/CapabilityDefaultEffect",
+            "default": "effect_unknown"
+          },
+          "env_keys": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Env Keys",
+            "type": "array"
+          },
+          "grantable": {
+            "title": "Grantable",
+            "type": "boolean"
+          },
+          "network_methods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Methods",
+            "type": "array"
+          },
+          "network_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Network Targets",
+            "type": "array"
+          },
+          "process_targets": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Process Targets",
+            "type": "array"
+          },
+          "provider_mode": {
+            "$ref": "#/components/schemas/CapabilityProviderMode",
+            "default": "forbidden"
+          },
+          "read_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Read Roots",
+            "type": "array"
+          },
+          "reversible": {
+            "title": "Reversible",
+            "type": "boolean"
+          },
+          "risk_tier": {
+            "$ref": "#/components/schemas/RiskTier"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Timeout Seconds"
+          },
+          "write_roots": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Write Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "capability",
+          "args_schema",
+          "risk_tier",
+          "reversible",
+          "authorization_mode",
+          "grantable"
+        ],
+        "title": "CapabilityRegistryEntry",
         "type": "object"
       },
       "CharacterSpan": {
@@ -1971,6 +2261,9 @@
           "authorization_match": {
             "$ref": "#/components/schemas/AuthorizationMatch"
           },
+          "capability_registry_entry": {
+            "$ref": "#/components/schemas/CapabilityRegistryEntry"
+          },
           "claim": {
             "$ref": "#/components/schemas/Claim"
           },
@@ -1996,6 +2289,7 @@
                 "PublishExport": "#/components/schemas/PublishExport",
                 "RegisterResource": "#/components/schemas/RegisterResource",
                 "RequestApproval": "#/components/schemas/RequestApproval",
+                "ResumeRun": "#/components/schemas/ResumeRun",
                 "RevisePlan": "#/components/schemas/RevisePlan",
                 "RevokePolicyGrant": "#/components/schemas/RevokePolicyGrant",
                 "StartRun": "#/components/schemas/StartRun"
@@ -2020,6 +2314,9 @@
               },
               {
                 "$ref": "#/components/schemas/PauseRun"
+              },
+              {
+                "$ref": "#/components/schemas/ResumeRun"
               },
               {
                 "$ref": "#/components/schemas/CancelRun"
@@ -2132,6 +2429,7 @@
           "command_result",
           "error_response",
           "action_hash_material",
+          "capability_registry_entry",
           "grant_match_context",
           "authorization_match",
           "workspace",
@@ -2210,6 +2508,46 @@
         "title": "CreateClaim",
         "type": "object"
       },
+      "CreateClaimRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateClaim",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "inquiry_id",
+          "statement"
+        ],
+        "title": "CreateClaimRequest",
+        "type": "object"
+      },
       "CreateHypothesis": {
         "additionalProperties": false,
         "properties": {
@@ -2268,6 +2606,53 @@
         "title": "CreateHypothesis",
         "type": "object"
       },
+      "CreateHypothesisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "falsification_criteria": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Falsification Criteria",
+            "type": "string"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateHypothesis",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "inquiry_id",
+          "statement",
+          "falsification_criteria"
+        ],
+        "title": "CreateHypothesisRequest",
+        "type": "object"
+      },
       "CreateInquiry": {
         "additionalProperties": false,
         "properties": {
@@ -2324,6 +2709,53 @@
           "acceptance"
         ],
         "title": "CreateInquiry",
+        "type": "object"
+      },
+      "CreateInquiryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptance": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Acceptance",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateInquiry",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "project_id",
+          "question",
+          "acceptance"
+        ],
+        "title": "CreateInquiryRequest",
         "type": "object"
       },
       "CreateLocator": {
@@ -2424,6 +2856,55 @@
         "title": "CreateLocator",
         "type": "object"
       },
+      "CreateLocatorRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/LocalFileCoordinates"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "locator_type": {
+            "const": "local_file",
+            "title": "Locator Type",
+            "type": "string"
+          },
+          "quote_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Quote Hash",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateLocator",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "resource_id",
+          "locator_type",
+          "coordinates",
+          "quote_hash"
+        ],
+        "title": "CreateLocatorRequest",
+        "type": "object"
+      },
       "CreatePolicyGrant": {
         "additionalProperties": false,
         "properties": {
@@ -2431,7 +2912,7 @@
             "$ref": "#/components/schemas/ActorRef"
           },
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "command_id": {
             "format": "uuid",
@@ -2531,6 +3012,50 @@
         "title": "CreateProject",
         "type": "object"
       },
+      "CreateProjectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateProject",
+            "title": "Type",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "workspace_id",
+          "title",
+          "data_class"
+        ],
+        "title": "CreateProjectRequest",
+        "type": "object"
+      },
       "CreateRelation": {
         "additionalProperties": false,
         "properties": {
@@ -2597,6 +3122,67 @@
           "target_id"
         ],
         "title": "CreateRelation",
+        "type": "object"
+      },
+      "CreateRelationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "relation_type": {
+            "enum": [
+              "evidence_supports_claim",
+              "evidence_opposes_claim",
+              "evidence_limits_claim"
+            ],
+            "title": "Relation Type",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "const": "evidence",
+            "title": "Source Type",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "const": "claim",
+            "title": "Target Type",
+            "type": "string"
+          },
+          "type": {
+            "const": "CreateRelation",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "relation_type",
+          "source_type",
+          "source_id",
+          "target_type",
+          "target_id"
+        ],
+        "title": "CreateRelationRequest",
         "type": "object"
       },
       "DataClass": {
@@ -2755,6 +3341,55 @@
           "decision"
         ],
         "title": "DecideApproval",
+        "type": "object"
+      },
+      "DecideApprovalRequest": {
+        "additionalProperties": false,
+        "description": "Decide one already-projected Approval without supplying authority.",
+        "properties": {
+          "approval_id": {
+            "format": "uuid",
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approved",
+              "denied"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "subject_hash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Subject Hash",
+            "type": "string"
+          },
+          "type": {
+            "const": "DecideApproval",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "approval_id",
+          "subject_hash",
+          "decision"
+        ],
+        "title": "DecideApprovalRequest",
         "type": "object"
       },
       "Decision": {
@@ -2936,6 +3571,73 @@
           "confidence_basis"
         ],
         "title": "DraftFinding",
+        "type": "object"
+      },
+      "DraftFindingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "confidence_basis": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Confidence Basis",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 128,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "terminal_run_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 1,
+            "title": "Terminal Run Ids",
+            "type": "array"
+          },
+          "type": {
+            "const": "DraftFinding",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "inquiry_id",
+          "statement",
+          "confidence_basis"
+        ],
+        "title": "DraftFindingRequest",
         "type": "object"
       },
       "EffectScope": {
@@ -3241,6 +3943,7 @@
           "action.started",
           "action.output",
           "action.completed",
+          "action.cancelled",
           "action.effect_unknown",
           "artifact.staged",
           "artifact.committed",
@@ -3328,6 +4031,39 @@
         ],
         "title": "EvidenceStatus",
         "type": "string"
+      },
+      "ExportSelectionInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "provenance": {
+            "enum": [
+              "interactive_user",
+              "test_harness"
+            ],
+            "title": "Provenance",
+            "type": "string"
+          },
+          "selection_id": {
+            "title": "Selection Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "selection_id",
+          "label",
+          "expires_at",
+          "provenance"
+        ],
+        "title": "ExportSelectionInfo",
+        "type": "object"
       },
       "Finding": {
         "additionalProperties": false,
@@ -3433,45 +4169,17 @@
         "title": "GrantMatchContext",
         "type": "object"
       },
-      "HandshakeResponse": {
-        "additionalProperties": false,
+      "HTTPValidationError": {
         "properties": {
-          "api_version": {
-            "title": "Api Version",
-            "type": "string"
-          },
-          "app_version": {
-            "title": "App Version",
-            "type": "string"
-          },
-          "mode": {
-            "const": "development_contract_only",
-            "default": "development_contract_only",
-            "title": "Mode",
-            "type": "string"
-          },
-          "mutations_enabled": {
-            "const": false,
-            "default": false,
-            "title": "Mutations Enabled",
-            "type": "boolean"
-          },
-          "schema_read_ceiling": {
-            "title": "Schema Read Ceiling",
-            "type": "integer"
-          },
-          "schema_version": {
-            "title": "Schema Version",
-            "type": "integer"
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
           }
         },
-        "required": [
-          "app_version",
-          "api_version",
-          "schema_version",
-          "schema_read_ceiling"
-        ],
-        "title": "HandshakeResponse",
+        "title": "HTTPValidationError",
         "type": "object"
       },
       "HealthResponse": {
@@ -3917,6 +4625,46 @@
         "title": "PauseRun",
         "type": "object"
       },
+      "PauseRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "PauseRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "PauseRunRequest",
+        "type": "object"
+      },
       "PdfCoordinates": {
         "additionalProperties": false,
         "properties": {
@@ -4113,7 +4861,7 @@
         "additionalProperties": false,
         "properties": {
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "constraints": {
             "$ref": "#/components/schemas/CapabilityConstraints"
@@ -4240,7 +4988,7 @@
             "type": "string"
           },
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "command_id": {
             "format": "uuid",
@@ -4373,6 +5121,59 @@
           "budget"
         ],
         "title": "ProposePlan",
+        "type": "object"
+      },
+      "ProposePlanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "type": {
+            "const": "ProposePlan",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "steps",
+          "policy",
+          "budget",
+          "type",
+          "inquiry_id"
+        ],
+        "title": "ProposePlanRequest",
         "type": "object"
       },
       "PublishExport": {
@@ -4544,6 +5345,75 @@
         "title": "RegisterResource",
         "type": "object"
       },
+      "RegisterResourceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "data_class": {
+            "$ref": "#/components/schemas/DataClass"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "local_file",
+            "title": "Kind",
+            "type": "string"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "maxLength": 240,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License"
+          },
+          "logical_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Logical Ref",
+            "type": "string"
+          },
+          "media_type": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Media Type",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "RegisterResource",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "project_id",
+          "kind",
+          "logical_ref",
+          "media_type",
+          "data_class"
+        ],
+        "title": "RegisterResourceRequest",
+        "type": "object"
+      },
       "Relation": {
         "additionalProperties": false,
         "properties": {
@@ -4703,7 +5573,8 @@
             "$ref": "#/components/schemas/ActorRef"
           },
           "allowed_uses": {
-            "minimum": 1,
+            "const": 1,
+            "default": 1,
             "title": "Allowed Uses",
             "type": "integer"
           },
@@ -4711,7 +5582,7 @@
             "$ref": "#/components/schemas/BudgetSnapshot"
           },
           "capability": {
-            "$ref": "#/components/schemas/VersionedRef"
+            "$ref": "#/components/schemas/CapabilityRef"
           },
           "command_id": {
             "format": "uuid",
@@ -4802,10 +5673,51 @@
           "budget",
           "risk_tier",
           "reversible",
-          "allowed_uses",
           "expires_at"
         ],
         "title": "RequestApproval",
+        "type": "object"
+      },
+      "RequestApprovalRequest": {
+        "additionalProperties": false,
+        "description": "Prepare one exact server-derived draft-export subject.",
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "target_selection_id": {
+            "maxLength": 64,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Target Selection Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "RequestApproval",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "finding_id",
+          "target_selection_id"
+        ],
+        "title": "RequestApprovalRequest",
         "type": "object"
       },
       "Resource": {
@@ -4972,6 +5884,97 @@
         "title": "ResourceUsage",
         "type": "object"
       },
+      "ResumeRun": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorRef"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Revision"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "ResumeRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "actor",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "ResumeRun",
+        "type": "object"
+      },
+      "ResumeRunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "ResumeRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "run_id",
+          "reason"
+        ],
+        "title": "ResumeRunRequest",
+        "type": "object"
+      },
       "RevisePlan": {
         "additionalProperties": false,
         "properties": {
@@ -5033,6 +6036,59 @@
           "budget"
         ],
         "title": "RevisePlan",
+        "type": "object"
+      },
+      "RevisePlanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "$ref": "#/components/schemas/BudgetSnapshot"
+          },
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "type": {
+            "const": "RevisePlan",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "steps",
+          "policy",
+          "budget",
+          "type",
+          "plan_id"
+        ],
+        "title": "RevisePlanRequest",
         "type": "object"
       },
       "RevokePolicyGrant": {
@@ -5254,7 +6310,7 @@
           },
           "capabilities": {
             "items": {
-              "$ref": "#/components/schemas/VersionedRef"
+              "$ref": "#/components/schemas/CapabilityRef"
             },
             "title": "Capabilities",
             "type": "array"
@@ -5332,6 +6388,73 @@
         "title": "RunState",
         "type": "string"
       },
+      "RuntimeHandshakeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "api_version": {
+            "title": "Api Version",
+            "type": "string"
+          },
+          "app_version": {
+            "title": "App Version",
+            "type": "string"
+          },
+          "enabled_mutations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Enabled Mutations",
+            "type": "array"
+          },
+          "execution_enabled": {
+            "default": false,
+            "title": "Execution Enabled",
+            "type": "boolean"
+          },
+          "export_selections": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ExportSelectionInfo"
+            },
+            "title": "Export Selections",
+            "type": "array"
+          },
+          "external_effects_enabled": {
+            "default": false,
+            "title": "External Effects Enabled",
+            "type": "boolean"
+          },
+          "mode": {
+            "const": "development_runtime",
+            "default": "development_runtime",
+            "title": "Mode",
+            "type": "string"
+          },
+          "mutations_enabled": {
+            "const": true,
+            "default": true,
+            "title": "Mutations Enabled",
+            "type": "boolean"
+          },
+          "schema_read_ceiling": {
+            "title": "Schema Read Ceiling",
+            "type": "integer"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "app_version",
+          "api_version",
+          "schema_version",
+          "schema_read_ceiling",
+          "enabled_mutations"
+        ],
+        "title": "RuntimeHandshakeResponse",
+        "type": "object"
+      },
       "StartRun": {
         "additionalProperties": false,
         "properties": {
@@ -5383,6 +6506,19 @@
             "title": "Random Seed",
             "type": "integer"
           },
+          "retry_of_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retry Of Run Id"
+          },
           "type": {
             "const": "StartRun",
             "title": "Type",
@@ -5401,6 +6537,75 @@
           "random_seed"
         ],
         "title": "StartRun",
+        "type": "object"
+      },
+      "StartRunRequest": {
+        "additionalProperties": false,
+        "description": "Browser-safe locked T2 start; fixture inputs stay server-owned.",
+        "properties": {
+          "command_id": {
+            "format": "uuid",
+            "title": "Command Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "inquiry_id": {
+            "format": "uuid",
+            "title": "Inquiry Id",
+            "type": "string"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "plan_revision": {
+            "minimum": 1.0,
+            "title": "Plan Revision",
+            "type": "integer"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "random_seed": {
+            "title": "Random Seed",
+            "type": "integer"
+          },
+          "retry_of_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Of Run Id"
+          },
+          "type": {
+            "const": "StartRun",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "expected_revision",
+          "type",
+          "project_id",
+          "inquiry_id",
+          "plan_id",
+          "plan_revision",
+          "random_seed"
+        ],
+        "title": "StartRunRequest",
         "type": "object"
       },
       "StructuredError": {
@@ -5446,6 +6651,46 @@
           "data_safe"
         ],
         "title": "StructuredError",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
         "type": "object"
       },
       "VersionedRef": {
@@ -5603,14 +6848,98 @@
         "title": "WorkspaceStatus",
         "type": "string"
       }
+    },
+    "securitySchemes": {
+      "LocalSessionBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
-    "title": "Nana Sidecar",
+    "title": "Nana Sidecar Runtime",
     "version": "0.3.0-dev"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/bootstrap": {
+      "get": {
+        "operationId": "bootstrap_api_v1_bootstrap_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "section",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Token"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "LocalSessionBearer": []
+          }
+        ],
+        "summary": "Bootstrap",
+        "tags": [
+          "projection"
+        ]
+      }
+    },
     "/api/v1/contracts": {
       "get": {
         "operationId": "contract_catalog_api_v1_contracts_get",
@@ -5626,9 +6955,61 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "LocalSessionBearer": []
+          }
+        ],
         "summary": "Contract Catalog",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "LocalSessionBearer": []
+          }
+        ],
+        "summary": "Events",
+        "tags": [
+          "events"
         ]
       }
     },
@@ -5640,16 +7021,162 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HandshakeResponse"
+                  "$ref": "#/components/schemas/RuntimeHandshakeResponse"
                 }
               }
             },
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "LocalSessionBearer": []
+          }
+        ],
         "summary": "Handshake",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/journey/commands": {
+      "post": {
+        "operationId": "journey_command_api_v1_journey_commands_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "AttachEvidence": "#/components/schemas/AttachEvidenceRequest",
+                    "CancelRun": "#/components/schemas/CancelRunRequest",
+                    "CreateClaim": "#/components/schemas/CreateClaimRequest",
+                    "CreateHypothesis": "#/components/schemas/CreateHypothesisRequest",
+                    "CreateInquiry": "#/components/schemas/CreateInquiryRequest",
+                    "CreateLocator": "#/components/schemas/CreateLocatorRequest",
+                    "CreateProject": "#/components/schemas/CreateProjectRequest",
+                    "CreateRelation": "#/components/schemas/CreateRelationRequest",
+                    "DecideApproval": "#/components/schemas/DecideApprovalRequest",
+                    "DraftFinding": "#/components/schemas/DraftFindingRequest",
+                    "PauseRun": "#/components/schemas/PauseRunRequest",
+                    "ProposePlan": "#/components/schemas/ProposePlanRequest",
+                    "RegisterResource": "#/components/schemas/RegisterResourceRequest",
+                    "RequestApproval": "#/components/schemas/RequestApprovalRequest",
+                    "ResumeRun": "#/components/schemas/ResumeRunRequest",
+                    "RevisePlan": "#/components/schemas/RevisePlanRequest",
+                    "StartRun": "#/components/schemas/StartRunRequest"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateProjectRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateInquiryRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ProposePlanRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RevisePlanRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartRunRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PauseRunRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ResumeRunRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CancelRunRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegisterResourceRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateLocatorRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateClaimRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AttachEvidenceRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateHypothesisRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateRelationRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DraftFindingRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RequestApprovalRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DecideApprovalRequest"
+                  }
+                ],
+                "title": "Command"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "LocalSessionBearer": []
+          }
+        ],
+        "summary": "Journey Command",
+        "tags": [
+          "journey"
         ]
       }
     },
@@ -5660,9 +7187,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"

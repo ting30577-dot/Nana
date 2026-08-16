@@ -1,6 +1,6 @@
 import type { components } from "./generated/api";
 
-export type Handshake = components["schemas"]["HandshakeResponse"];
+export type Handshake = components["schemas"]["RuntimeHandshakeResponse"];
 export type Project = components["schemas"]["Project"];
 export type Inquiry = components["schemas"]["Inquiry"];
 export type Plan = components["schemas"]["Plan"];

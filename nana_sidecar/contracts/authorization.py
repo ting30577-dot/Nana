@@ -14,15 +14,22 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
+from nana_sidecar.contracts.capabilities import (
+    CapabilityAuthorizationMode,
+    CapabilityProviderMode,
+    CapabilityRegistryEntry,
+    NEVER_GRANT_CAPABILITY_IDS,
+)
 from nana_sidecar.contracts.common import (
     BudgetSnapshot,
+    CapabilityRef,
     ContractModel,
     DataClass,
     EffectScope,
     HashDigest,
     JsonObject,
     RiskTier,
-    VersionedRef,
+    normalize_utc_datetime,
 )
 from nana_sidecar.contracts.domain import (
     Approval,
@@ -30,29 +37,7 @@ from nana_sidecar.contracts.domain import (
     PolicyGrant,
     PolicyGrantState,
 )
-
-
-NEVER_GRANT_CAPABILITIES = frozenset(
-    {"decision.confirm", "export.publish", "object.delete"}
-)
-
-_SUPPORTED_SCHEMA_KEYS = frozenset(
-    {
-        "type",
-        "required",
-        "properties",
-        "additionalProperties",
-        "const",
-        "enum",
-        "minimum",
-        "maximum",
-        "minLength",
-        "maxLength",
-        "items",
-        "minItems",
-        "maxItems",
-    }
-)
+from nana_sidecar.contracts.safe_json_schema import safe_schema_matches
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -76,7 +61,7 @@ def canonical_json_hash(value: Any) -> str:
 class ActionHashMaterial(ContractModel):
     """Every mutable input whose change must invalidate an Approval."""
 
-    capability: VersionedRef
+    capability: CapabilityRef
     args: JsonObject
     args_hash: HashDigest
     data_class: DataClass
@@ -124,12 +109,20 @@ def approval_authorizes(
     *,
     action_id: UUID,
     material: ActionHashMaterial,
+    registry_entry: CapabilityRegistryEntry,
     at: datetime,
     prior_uses: int,
 ) -> AuthorizationMatch:
     reasons: list[str] = []
+    checked_at: datetime | None
+    try:
+        checked_at = normalize_utc_datetime(at)
+    except ValueError:
+        checked_at = None
+        reasons.append("at_not_utc")
     action_hash = compute_action_hash(material)
 
+    reasons.extend(_registry_reasons(registry_entry, material))
     if approval.subject_type != "action":
         reasons.append("subject_type")
     if approval.subject_id != action_id:
@@ -138,7 +131,7 @@ def approval_authorizes(
         reasons.append("action_hash")
     if approval.decision is not ApprovalDecision.APPROVED:
         reasons.append("decision")
-    if at >= approval.expires_at:
+    if checked_at is not None and checked_at >= approval.expires_at:
         reasons.append("expired")
     if prior_uses < 0 or prior_uses >= approval.allowed_uses:
         reasons.append("uses")
@@ -168,13 +161,28 @@ def policy_grant_matches(
     grant: PolicyGrant,
     *,
     material: ActionHashMaterial,
+    registry_entry: CapabilityRegistryEntry,
     context: GrantMatchContext,
     at: datetime,
 ) -> AuthorizationMatch:
     reasons: list[str] = []
+    checked_at: datetime | None
+    try:
+        checked_at = normalize_utc_datetime(at)
+    except ValueError:
+        checked_at = None
+        reasons.append("at_not_utc")
     constraints = grant.constraints
 
-    if material.capability.id in NEVER_GRANT_CAPABILITIES:
+    reasons.extend(_registry_reasons(registry_entry, material))
+    if material.capability.id in NEVER_GRANT_CAPABILITY_IDS:
+        reasons.append("capability_requires_one_time_approval")
+    elif not registry_entry.grantable:
+        reasons.append("capability_not_grantable")
+    elif (
+        registry_entry.authorization_mode
+        is CapabilityAuthorizationMode.ONE_TIME_APPROVAL
+    ):
         reasons.append("capability_requires_one_time_approval")
     if grant.state is not PolicyGrantState.ACTIVE:
         reasons.append("grant_state")
@@ -182,7 +190,9 @@ def policy_grant_matches(
         reasons.append("project")
     if material.capability != grant.capability:
         reasons.append("capability")
-    if not (constraints.valid_from <= at < constraints.expires_at):
+    if checked_at is None or not (
+        constraints.valid_from <= checked_at < constraints.expires_at
+    ):
         reasons.append("validity_window")
     if grant.uses >= constraints.max_uses:
         reasons.append("uses")
@@ -190,8 +200,11 @@ def policy_grant_matches(
         reasons.append("concurrency")
     if material.data_class not in constraints.allowed_data_classes:
         reasons.append("data_class")
+    if material.provider is None and constraints.allowed_providers:
+        reasons.append("provider")
     if material.provider is not None and (
-        material.provider not in constraints.allowed_providers
+        not constraints.allowed_providers
+        or material.provider not in constraints.allowed_providers
     ):
         reasons.append("provider")
     if not _schema_matches(constraints.args_schema, material.args):
@@ -208,8 +221,11 @@ def policy_grant_matches(
         constraints.network_targets,
     ):
         reasons.append("network_scope")
-    if material.requested_effects.processes:
-        reasons.append("process_scope_not_grantable")
+    if not _scope_is_subset(
+        material.requested_effects.processes,
+        constraints.process_targets,
+    ):
+        reasons.append("process_scope")
     if not _scope_is_subset(
         material.network_methods,
         constraints.network_methods,
@@ -280,82 +296,61 @@ def _budget_within(
     )
 
 
+def _registry_reasons(
+    registry_entry: CapabilityRegistryEntry,
+    material: ActionHashMaterial,
+) -> list[str]:
+    reasons: list[str] = []
+    if registry_entry.capability != material.capability:
+        reasons.append("capability_registry")
+    if registry_entry.risk_tier is not material.risk_tier:
+        reasons.append("capability_registry_risk")
+    if registry_entry.reversible != material.reversible:
+        reasons.append("capability_registry_reversible")
+    if not safe_schema_matches(registry_entry.args_schema, material.args):
+        reasons.append("capability_registry_args")
+    if not _scope_is_subset(material.requested_effects.reads, registry_entry.read_roots):
+        reasons.append("capability_registry_read_scope")
+    if not _scope_is_subset(
+        material.requested_effects.writes,
+        registry_entry.write_roots,
+    ):
+        reasons.append("capability_registry_write_scope")
+    if not _scope_is_subset(
+        material.requested_effects.network,
+        registry_entry.network_targets,
+    ):
+        reasons.append("capability_registry_network_scope")
+    if not _scope_is_subset(
+        material.network_methods,
+        registry_entry.network_methods,
+    ):
+        reasons.append("capability_registry_network_method")
+    if not _scope_is_subset(
+        material.requested_effects.processes,
+        registry_entry.process_targets,
+    ):
+        reasons.append("capability_registry_process_scope")
+    if (
+        registry_entry.timeout_seconds is not None
+        and material.budget.wall_clock_seconds > registry_entry.timeout_seconds
+    ):
+        reasons.append("capability_registry_timeout")
+    if registry_entry.provider_mode is CapabilityProviderMode.FORBIDDEN:
+        if material.provider is not None:
+            reasons.append("provider")
+    elif registry_entry.provider_mode is CapabilityProviderMode.REQUIRED:
+        if material.provider is None:
+            reasons.append("provider")
+    if material.provider is not None and (
+        not registry_entry.allowed_providers
+        or material.provider not in registry_entry.allowed_providers
+    ):
+        reasons.append("provider")
+    return reasons
+
+
 def _schema_matches(schema: JsonObject, value: Any) -> bool:
     """Validate the documented safe JSON-Schema subset; unknown keys deny."""
 
-    if not set(schema).issubset(_SUPPORTED_SCHEMA_KEYS):
-        return False
-    if "const" in schema and value != schema["const"]:
-        return False
-    if "enum" in schema and value not in schema["enum"]:
-        return False
-
-    expected_type = schema.get("type")
-    if expected_type == "object":
-        if not isinstance(value, dict):
-            return False
-        properties = schema.get("properties", {})
-        required = schema.get("required", [])
-        if not isinstance(properties, dict) or not isinstance(required, list):
-            return False
-        if not set(required).issubset(value):
-            return False
-        additional = schema.get("additionalProperties", False)
-        if additional not in (True, False):
-            return False
-        if not additional and not set(value).issubset(properties):
-            return False
-        return all(
-            key not in value
-            or (
-                isinstance(child_schema, dict)
-                and _schema_matches(child_schema, value[key])
-            )
-            for key, child_schema in properties.items()
-        )
-    if expected_type == "array":
-        if not isinstance(value, list):
-            return False
-        if not _length_matches(schema, value):
-            return False
-        item_schema = schema.get("items", {})
-        return isinstance(item_schema, dict) and all(
-            _schema_matches(item_schema, item) for item in value
-        )
-    if expected_type == "string":
-        return isinstance(value, str) and _length_matches(schema, value)
-    if expected_type == "integer":
-        return (
-            isinstance(value, int)
-            and not isinstance(value, bool)
-            and _number_matches(schema, value)
-        )
-    if expected_type == "number":
-        return (
-            isinstance(value, (int, float))
-            and not isinstance(value, bool)
-            and _number_matches(schema, value)
-        )
-    if expected_type == "boolean":
-        return isinstance(value, bool)
-    if expected_type == "null":
-        return value is None
-    return expected_type is None
-
-
-def _length_matches(schema: JsonObject, value: Any) -> bool:
-    minimum = schema.get("minLength", schema.get("minItems"))
-    maximum = schema.get("maxLength", schema.get("maxItems"))
-    return (
-        (minimum is None or len(value) >= minimum)
-        and (maximum is None or len(value) <= maximum)
-    )
-
-
-def _number_matches(schema: JsonObject, value: int | float) -> bool:
-    minimum = schema.get("minimum")
-    maximum = schema.get("maximum")
-    return (
-        (minimum is None or value >= minimum)
-        and (maximum is None or value <= maximum)
-    )
+    return safe_schema_matches(schema, value)

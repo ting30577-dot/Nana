@@ -1,0 +1,29 @@
+{
+  "schema": "nana.d3.final_gate.v1",
+  "stage": "D3-09",
+  "version": "v0.3.0-dev-D3",
+  "date": "2026-08-13",
+  "governance": {
+    "mode": "codex_only",
+    "decision_record": "docs/d3_codex_only_governance_decision_20260811.md",
+    "claude_called_in_current_gate": false,
+    "historical_claude_results_relabelled": false
+  },
+  "status": "codex_only_accept",
+  "d3_complete": true,
+  "scope": {
+    "locked_execution": "trusted frozen python.unittest.locked fixture only",
+    "external_effect": "one-time controlled fixed-local public draft export only",
+    "remote_publish": false,
+    "hostile_code_sandbox_claim": false
+  },
+  "evidence": {
+    "ten_consecutive_full_success": "PASS_10_OF_10_RETRIES_0",
+    "browser_release_matrix": "PASS_25_OF_25_RETRIES_0",
+    "strict_python_resourcewarning": "PASS_204_WITH_2_PLATFORM_SKIPS",
+    "full_python": "PASS_412_WITH_2_PLATFORM_SKIPS",
+    "typescript_vitest_build": "PASS_67_VITEST_PLUS_PROJECTION_SELF_TEST",
+    "final_full_verification": "PASS",
+    "manifest": "PASS_ZERO_ERRORS"
+  }
+}

@@ -156,6 +156,7 @@ class RelationEndpoint:
     state: str | None = None
     revision: int | None = None
     created_at: datetime | None = None
+    created_order: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -302,11 +303,19 @@ def validate_relation(
             )
 
     if rule.require_source_newer:
-        if (
-            source.created_at is None
-            or target.created_at is None
-            or source.created_at <= target.created_at
-        ):
+        ordered = (
+            source.created_order is not None
+            and target.created_order is not None
+            and source.created_order > target.created_order
+        )
+        dated = (
+            source.created_order is None
+            and target.created_order is None
+            and source.created_at is not None
+            and target.created_at is not None
+            and source.created_at > target.created_at
+        )
+        if not (ordered or dated):
             raise RelationContractError(rule.error_code, "source must be newer")
         if relation_type == RelationType.OBJECT_SUPERSEDES_OBJECT.value and (
             source.revision is None

@@ -7,6 +7,7 @@ from nana_sidecar.contracts.authorization import (
     AuthorizationMatch,
     GrantMatchContext,
 )
+from nana_sidecar.contracts.capabilities import CapabilityRegistryEntry
 from nana_sidecar.contracts.commands import Command, CommandResult
 from nana_sidecar.contracts.common import ContractModel
 from nana_sidecar.contracts.errors import ErrorResponse
@@ -40,6 +41,7 @@ class ContractCatalogSchema(ContractModel):
     command_result: CommandResult
     error_response: ErrorResponse
     action_hash_material: ActionHashMaterial
+    capability_registry_entry: CapabilityRegistryEntry
     grant_match_context: GrantMatchContext
     authorization_match: AuthorizationMatch
     workspace: Workspace

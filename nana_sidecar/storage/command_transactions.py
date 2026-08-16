@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from typing import Callable, Iterator
 
 from nana_sidecar.contracts.commands import (
+    CommandBase,
     CommandResult,
     CommandStatus,
     RevisePlan,
@@ -64,11 +65,37 @@ class CommandTransactionService:
     def execute(self, command: RevisePlan) -> CommandResult:
         if not isinstance(command, RevisePlan):
             raise TypeError("D1-05 Command runtime supports RevisePlan")
+        return self.execute_transactional(
+            command,
+            apply=self._apply_revise_plan,
+            validate_result=self._validate_stored_result,
+            validate_rejection=self._validate_stored_rejection,
+        )
+
+    def execute_transactional(
+        self,
+        command: CommandBase,
+        *,
+        apply: Callable[
+            [CommandBase, str],
+            tuple[CommandResult | None, StructuredError | None],
+        ],
+        validate_result: Callable[[CommandBase, CommandResult], None],
+        validate_rejection: Callable[[CommandBase, StructuredError], None],
+    ) -> CommandResult:
+        """Run one bound Command through the shared D1 idempotency protocol."""
+
         self._require_idle()
         request_hash = self._request_hash(command)
         existing = self._find_command(command)
         if existing is not None:
-            return self._replay(existing, command, request_hash)
+            return self._replay(
+                existing,
+                command,
+                request_hash,
+                validate_result=validate_result,
+                validate_rejection=validate_rejection,
+            )
 
         result: CommandResult | None = None
         rejection: StructuredError | None = None
@@ -80,42 +107,26 @@ class CommandTransactionService:
                     existing,
                     command,
                     request_hash,
+                    validate_result=validate_result,
+                    validate_rejection=validate_rejection,
                 )
             else:
-                current = self.connection.execute(
-                    """
-                    SELECT inquiry_id, revision
-                    FROM plans
-                    WHERE id = ?
-                    ORDER BY revision DESC
-                    LIMIT 1
-                    """,
-                    (str(command.plan_id),),
-                ).fetchone()
-                actual_revision = (
-                    int(current["revision"])
-                    if current is not None
-                    else None
-                )
-                if (
-                    current is None
-                    or command.expected_revision != actual_revision
-                ):
-                    rejection = self._revision_conflict(
-                        command,
-                        actual_revision,
-                    )
+                result, rejection = apply(command, request_hash)
+                if rejection is not None:
                     self._insert_rejected_command(
                         command,
                         request_hash,
                         rejection,
                     )
                 else:
-                    result = self._revise_plan(
+                    if result is None:
+                        raise RuntimeError(
+                            "Command apply produced neither result nor rejection"
+                        )
+                    self._insert_accepted_command(
                         command,
                         request_hash,
-                        inquiry_id=str(current["inquiry_id"]),
-                        current_revision=actual_revision,
+                        result,
                     )
                 self._checkpoint("before_commit")
 
@@ -127,6 +138,36 @@ class CommandTransactionService:
         if result is None:
             raise RuntimeError("Command transaction produced no result")
         return result
+
+    def _apply_revise_plan(
+        self,
+        command: CommandBase,
+        request_hash: str,
+    ) -> tuple[CommandResult | None, StructuredError | None]:
+        if not isinstance(command, RevisePlan):
+            raise TypeError("RevisePlan apply received another Command")
+        current = self.connection.execute(
+            """
+            SELECT inquiry_id, revision
+            FROM plans
+            WHERE id = ?
+            ORDER BY revision DESC
+            LIMIT 1
+            """,
+            (str(command.plan_id),),
+        ).fetchone()
+        actual_revision = int(current["revision"]) if current is not None else None
+        if current is None or command.expected_revision != actual_revision:
+            return None, self._revision_conflict(command, actual_revision)
+        return (
+            self._revise_plan(
+                command,
+                request_hash,
+                inquiry_id=str(current["inquiry_id"]),
+                current_revision=actual_revision,
+            ),
+            None,
+        )
 
     def _revise_plan(
         self,
@@ -196,6 +237,15 @@ class CommandTransactionService:
             },
             event_ids=(event_id,),
         )
+        return result
+
+    def _insert_accepted_command(
+        self,
+        command: CommandBase,
+        request_hash: str,
+        result: CommandResult,
+    ) -> None:
+        occurred_at = self._now()
         self.connection.execute(
             """
             INSERT INTO command_log (
@@ -213,11 +263,10 @@ class CommandTransactionService:
                 occurred_at,
             ),
         )
-        return result
 
     def _insert_rejected_command(
         self,
-        command: RevisePlan,
+        command: CommandBase,
         request_hash: str,
         error: StructuredError,
     ) -> None:
@@ -242,11 +291,11 @@ class CommandTransactionService:
 
     def _find_command(
         self,
-        command: RevisePlan,
+        command: CommandBase,
     ) -> sqlite3.Row | None:
         return self.connection.execute(
             """
-            SELECT type, request_hash, state, result_json, error_json
+            SELECT type, request_hash, actor_json, state, result_json, error_json
             FROM command_log
             WHERE command_id = ?
             """,
@@ -367,10 +416,17 @@ class CommandTransactionService:
     def _replay(
         self,
         row: sqlite3.Row,
-        command: RevisePlan,
+        command: CommandBase,
         request_hash: str,
+        *,
+        validate_result: Callable[[CommandBase, CommandResult], None],
+        validate_rejection: Callable[[CommandBase, StructuredError], None],
     ) -> CommandResult:
-        if row["type"] != command.type or row["request_hash"] != request_hash:
+        if (
+            row["type"] != command.type
+            or row["request_hash"] != request_hash
+            or row["actor_json"] != _json(command.actor.model_dump(mode="json"))
+        ):
             raise CommandExecutionError(
                 StructuredError(
                     code=ErrorCode.COMMAND_REPLAY_CONFLICT,
@@ -391,7 +447,7 @@ class CommandTransactionService:
             stored = CommandResult.model_validate(
                 json.loads(str(row["result_json"]))
             )
-            self._validate_stored_result(command, stored)
+            validate_result(command, stored)
             return stored.model_copy(
                 update={"status": CommandStatus.REPLAYED}
             )
@@ -399,14 +455,14 @@ class CommandTransactionService:
             error = StructuredError.model_validate(
                 json.loads(str(row["error_json"]))
             )
-            self._validate_stored_rejection(command, error)
+            validate_rejection(command, error)
             raise CommandExecutionError(error, replayed=True)
         raise RuntimeError(
             f"command_log row for {command.command_id} is incomplete"
         )
 
     @staticmethod
-    def _request_hash(command: RevisePlan) -> str:
+    def _request_hash(command: CommandBase) -> str:
         serialized = _json(command.model_dump(mode="json")).encode("utf-8")
         return f"sha256:{hashlib.sha256(serialized).hexdigest()}"
 

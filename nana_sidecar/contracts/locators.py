@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Annotated, Literal, Union
+from urllib.parse import parse_qsl, urlsplit
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
@@ -17,6 +18,21 @@ from nana_sidecar.contracts.common import (
 
 
 _WINDOWS_DRIVE = re.compile(r"^[A-Za-z]:")
+_SENSITIVE_QUERY_KEYS = {
+    "access_token",
+    "apikey",
+    "api_key",
+    "auth",
+    "authorization",
+    "key",
+    "password",
+    "pass",
+    "secret",
+    "sig",
+    "signature",
+    "token",
+    "refresh_token",
+}
 
 
 def validate_logical_path(value: str) -> str:
@@ -93,6 +109,11 @@ class WebCoordinates(ContractModel):
     def require_anchor(self) -> "WebCoordinates":
         if self.quote_span is None and self.dom_anchor is None:
             raise ValueError("web locator requires quote_span or dom_anchor")
+        parsed = urlsplit(str(self.canonical_url))
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("web locator must not include URL credentials")
+        if any(key.lower() in _SENSITIVE_QUERY_KEYS for key, _ in parse_qsl(parsed.query, keep_blank_values=True)):
+            raise ValueError("web locator must not include sensitive query parameters")
         return self
 
 
@@ -126,6 +147,18 @@ class RepoCoordinates(ContractModel):
     def require_position(self) -> "RepoCoordinates":
         if self.symbol is None and self.line_span is None:
             raise ValueError("repo locator requires symbol or line_span")
+        parsed = urlsplit(self.remote)
+        if parsed.scheme in {"http", "https", "ssh", "git"}:
+            if parsed.username is not None or parsed.password is not None:
+                raise ValueError("repo locator must not include URL credentials")
+            if any(
+                key.lower() in _SENSITIVE_QUERY_KEYS
+                for key, _ in parse_qsl(parsed.query, keep_blank_values=True)
+            ):
+                raise ValueError("repo locator must not include sensitive query parameters")
+        elif "@" in self.remote and "://" not in self.remote:
+            if re.search(r":[^/@\s]+@", self.remote):
+                raise ValueError("repo locator must not include embedded credentials")
         return self
 
 
