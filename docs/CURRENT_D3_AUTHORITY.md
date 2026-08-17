@@ -1,15 +1,15 @@
 # Nana v0.3.0-dev D3 current authority
 
 <!-- nana-current-authority
-status: acceptance_complete_baseline_pending
+status: acceptance_complete_release_baseline_frozen
 technical_slice_status: sol_accept
 d3_complete: true
-release_baseline_frozen: false
+release_baseline_frozen: true
 gate_json: docs/evidence/v0.3.0-dev-d3-09-gate-decision.json
 -->
 
 Date: 2026-08-17
-Status: **D3 acceptance complete; release-baseline refreeze pending**
+Status: **D3 acceptance complete; release baseline frozen**
 
 This is the single repository authority for the current D3 worktree. Earlier
 handoffs, completion audits, scan packets, acceptance records and evidence
@@ -86,12 +86,14 @@ summaries are historical snapshots unless this page explicitly cites them.
   bare `import PySide6.QtCore`; it is isolated to the frozen legacy UI stack and
   is not suppressed or misreported as repaired.
 
-## Delivery boundary
+## Frozen baseline binding
 
-The observation decision changes the current evidence set after commit
-`76584af`. Therefore the only remaining D3 delivery gate is to regenerate the
-manifest, bind the gate to the resulting commit, rerun the frozen verification
-set and mark `release_baseline_frozen=true`. Until then D3 acceptance is
-complete but Tauri construction is not authorized. Runtime/user data remains
-outside the source tree and excluded from every release package. Historical
-completion records do not override this page or the current machine gate.
+The product-owner observation registration is fixed by result commit
+`278f3a4186d7d0f85f6caf715c2882d63c589fc6`. The release-baseline commit is
+its direct successor and contains only the current authority/evidence freeze,
+the regenerated final manifest and its detached SHA-256. The full 446/446
+Python run, frontend verification, 27/27 browser matrix and 10/10 consecutive
+journeys were rerun against that result commit before the freeze metadata was
+written. Runtime/user data remains outside the source tree and excluded from
+every release package. Historical completion records do not override this page
+or the current machine gate.

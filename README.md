@@ -9,9 +9,9 @@ evidence, reproducible runs, reusable artifacts, and a user-approved decision.
 
 > Current implementation: legacy `v0.2.0-alpha` plus a technically verified
 > `v0.3.0-dev` React/FastAPI vertical slice.
-> Current D3 acceptance status: `acceptance_complete_baseline_pending`;
-> `d3_complete=true`, while the post-attestation release baseline still requires
-> one final manifest/commit refreeze. See the authority.
+> Current D3 acceptance status: `acceptance_complete_release_baseline_frozen`;
+> `d3_complete=true` and `release_baseline_frozen=true`. See the authority and
+> the commit-bound final evidence manifest.
 
 The present PySide6 application is still runnable and its tests are retained as
 a regression baseline. It is not the target UI or data architecture. New

@@ -12,10 +12,15 @@
     "claude_waiver_temporary": true,
     "historical_claude_results_relabelled": false
   },
-  "status": "acceptance_complete_baseline_pending",
+  "status": "acceptance_complete_release_baseline_frozen",
   "technical_slice_status": "sol_accept",
   "d3_complete": true,
-  "release_baseline_frozen": false,
+  "release_baseline_frozen": true,
+  "baseline_binding": {
+    "result_commit": "278f3a4186d7d0f85f6caf715c2882d63c589fc6",
+    "relationship": "direct_parent_of_release_baseline_commit",
+    "evidence": "docs/evidence/v0.3.0-dev-d3-release-baseline-freeze-20260817.md"
+  },
   "blocking_gate": {
     "id": "observed_target_user_session",
     "required": true,
@@ -32,7 +37,7 @@
     "hostile_code_sandbox_claim": false
   },
   "evidence": {
-    "snapshot_state": "pending_post_attestation_refreeze",
+    "snapshot_state": "current_refrozen",
     "full_python": {
       "total": 446,
       "passed": 446,
@@ -51,9 +56,10 @@
     "release_package_audit": "PASS_212_ENTRIES_ZERO_FORBIDDEN",
     "manifest": {
       "path": "docs/evidence/v0.3.0-dev-d3-final-manifest.txt",
-      "record_kind": "historical_pre_owner_attestation",
-      "current": false,
-      "required_next_state": "commit_bound_release_baseline"
+      "digest_path": "docs/evidence/v0.3.0-dev-d3-final-manifest.sha256",
+      "record_kind": "current_frozen_release_baseline",
+      "current": true,
+      "bound_result_commit": "278f3a4186d7d0f85f6caf715c2882d63c589fc6"
     }
   },
   "supersedes": [
