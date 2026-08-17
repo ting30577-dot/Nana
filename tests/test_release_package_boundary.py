@@ -91,7 +91,6 @@ class ReleasePackageBoundaryTests(unittest.TestCase):
         self.assertIn("audit_release_package.py", build_script)
         self.assertNotIn("Copy-Item -Recurse", build_script)
         self.assertFalse((ROOT / "Nana.spec").exists())
-        self.assertFalse((ROOT / "src-tauri").exists())
 
 
 if __name__ == "__main__":

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -29,7 +31,14 @@ class TauriSpikeGateTests(unittest.TestCase):
         self.assertFalse(policy["product_code_allowed"])
         self.assertEqual(policy["canonical_writer"], "python_sidecar_only")
         self.assertTrue(all(policy["forbidden"].values()))
-        self.assertFalse((ROOT / "src-tauri").exists())
+        self.assertEqual(policy["source_root_presence"], "optional_until_scaffold_commit")
+        source = ROOT / policy["allowed_source_roots"][0]
+        self.assertEqual(source.parent.resolve(), ROOT.resolve())
+        if source.exists():
+            self.assertTrue(source.is_dir())
+            self.assertFalse(source.is_symlink())
+            attributes = getattr(os.lstat(source), "st_file_attributes", 0)
+            self.assertEqual(attributes & 0x400, 0, "src-tauri must not be reparse")
 
     def test_toolchain_evidence_closes_prerequisites_not_product_gate(self) -> None:
         policy = json.loads(POLICY.read_text(encoding="utf-8"))
@@ -38,14 +47,54 @@ class TauriSpikeGateTests(unittest.TestCase):
             policy["status"], "spike_entry_authorized_toolchain_verified"
         )
         self.assertEqual(evidence["status"], "PASS_FOR_MINIMAL_SPIKE_SCAFFOLD")
-        self.assertEqual(evidence["execution_proof"]["preflight"], "PASS_8_OF_8")
+        self.assertEqual(evidence["execution_proof"]["preflight"], "PASS_10_OF_10")
         self.assertEqual(evidence["execution_proof"]["cargo_check"], "PASS")
         self.assertEqual(
             evidence["execution_proof"]["linked_probe_execution"],
             "PASS_HELLO_WORLD",
         )
+        audit = evidence["execution_proof"]["tauri_cli_npm_audit"]
+        self.assertEqual(audit["registry"], "https://registry.npmjs.org")
+        self.assertEqual(audit["exit_code"], 0)
+        self.assertEqual(audit["vulnerabilities_total"], 0)
         self.assertFalse(evidence["boundary"]["product_code_authorized"])
-        self.assertFalse(evidence["boundary"]["src_tauri_created"])
+        self.assertEqual(
+            evidence["boundary"]["src_tauri_state_record_kind"],
+            "point_in_time_snapshot_not_presence_gate",
+        )
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows host preflight")
+    def test_live_windows_preflight_executes_and_validates_versions(self) -> None:
+        completed = subprocess.run(
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(ROOT / "scripts/check_tauri_windows_prereqs.ps1"),
+                "-RepositoryRoot",
+                str(ROOT),
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        live = json.loads(completed.stdout)
+        self.assertTrue(live["passed"])
+        self.assertEqual(len(live["checks"]), 10)
+        for name in ("rustup", "rustc_msvc", "cargo", "node", "npm"):
+            with self.subTest(name=name):
+                self.assertTrue(live["checks"][name]["passed"])
+                self.assertEqual(live["checks"][name]["exit_code"], 0)
+        tauri = live["checks"]["project_local_tauri_cli"]
+        self.assertTrue(tauri["passed"])
+        self.assertEqual(tauri["exit_code"], 0)
+        self.assertEqual(tauri["version"], "tauri-cli 2.11.4")
+        self.assertEqual(tauri["expected_version"], "2.11.4")
 
     def test_release_baseline_tag_resolves_commit_and_real_parent(self) -> None:
         anchor = json.loads(ANCHOR.read_text(encoding="utf-8"))
@@ -87,6 +136,16 @@ class TauriSpikeGateTests(unittest.TestCase):
         )
         self.assertNotIn("registry.npmmirror.com", lock)
         self.assertIn("registry.npmjs.org", lock)
+        self.assertEqual(
+            package["scripts"]["audit:official"],
+            "npm audit --registry=https://registry.npmjs.org --json",
+        )
+        audit_gate = (ROOT / "scripts/check_tauri_npm_audit.ps1").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("https://registry.npmjs.org", audit_gate)
+        self.assertNotIn("--omit=optional", audit_gate)
+        self.assertIn("vulnerabilities_total", audit_gate)
 
     def test_spike_evidence_manifest_is_current(self) -> None:
         normalized, digest = recompute_manifest(SPIKE_MANIFEST)

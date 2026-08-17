@@ -24,10 +24,47 @@ function Resolve-Executable {
     return $null
 }
 
+function Invoke-VersionProbe {
+    param(
+        [string]$Executable,
+        [string[]]$Arguments
+    )
+
+    if (-not $Executable) {
+        return [ordered]@{
+            passed = $false
+            exit_code = $null
+            output = $null
+        }
+    }
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $output = @(& $Executable @Arguments 2>&1)
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousPreference
+    $cleanOutput = @(
+        $output |
+            ForEach-Object { $_.ToString() } |
+            Where-Object { $_ -notmatch '^(info|warn):' }
+    )
+    return [ordered]@{
+        passed = $exitCode -eq 0
+        exit_code = $exitCode
+        output = ($cleanOutput -join "`n").Trim()
+    }
+}
+
 $cargoBin = Join-Path $env:USERPROFILE '.cargo\bin'
 $rustup = Resolve-Executable 'rustup' @((Join-Path $cargoBin 'rustup.exe'))
 $rustc = Resolve-Executable 'rustc' @((Join-Path $cargoBin 'rustc.exe'))
 $cargo = Resolve-Executable 'cargo' @((Join-Path $cargoBin 'cargo.exe'))
+$node = Resolve-Executable 'node' @()
+$npmCandidates = if ($node) {
+    @((Join-Path (Split-Path -Parent $node) 'npm.cmd'))
+} else {
+    @()
+}
+$npm = Resolve-Executable 'npm.cmd' $npmCandidates
 
 $vswhere = Resolve-Executable 'vswhere' @(
     'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
@@ -77,6 +114,18 @@ $webView = Get-ItemProperty `
     Select-Object -First 1
 
 $tauriCli = Join-Path $RepositoryRoot 'tools\tauri-spike\node_modules\.bin\tauri.cmd'
+$toolPackage = Get-Content -Raw `
+    (Join-Path $RepositoryRoot 'tools\tauri-spike\package.json') |
+    ConvertFrom-Json
+$expectedTauriVersion = $toolPackage.devDependencies.'@tauri-apps/cli'
+$rustupProbe = Invoke-VersionProbe $rustup @('--version')
+$rustcProbe = Invoke-VersionProbe $rustc @('--version')
+$cargoProbe = Invoke-VersionProbe $cargo @('--version')
+$nodeProbe = Invoke-VersionProbe $node @('--version')
+$npmProbe = Invoke-VersionProbe $npm @('--version')
+$tauriProbe = Invoke-VersionProbe $tauriCli @('--version')
+$activeToolchainProbe = Invoke-VersionProbe $rustup @('show', 'active-toolchain')
+$activeToolchain = $activeToolchainProbe.output
 $tagRef = 'refs/tags/v0.3.0-dev-d3-final'
 $tagCommit = (& git -C $RepositoryRoot rev-parse "$tagRef^{}" 2>$null)
 $tagParent = if ($LASTEXITCODE -eq 0) {
@@ -87,19 +136,35 @@ $tagParent = if ($LASTEXITCODE -eq 0) {
 
 $checks = [ordered]@{
     rustup = [ordered]@{
-        passed = [bool]$rustup
-        version = if ($rustup) { (& $rustup --version | Select-Object -First 1) } else { $null }
+        passed = $rustupProbe.passed
+        exit_code = $rustupProbe.exit_code
+        version = $rustupProbe.output
     }
     rustc_msvc = [ordered]@{
-        passed = [bool]$rustc -and ((& $rustup show active-toolchain) -match 'x86_64-pc-windows-msvc')
-        version = if ($rustc) { (& $rustc --version) } else { $null }
+        passed = $rustcProbe.passed -and
+            ($activeToolchain -match 'x86_64-pc-windows-msvc')
+        exit_code = $rustcProbe.exit_code
+        version = $rustcProbe.output
+        active_toolchain = $activeToolchain
     }
     cargo = [ordered]@{
-        passed = [bool]$cargo
-        version = if ($cargo) { (& $cargo --version) } else { $null }
+        passed = $cargoProbe.passed
+        exit_code = $cargoProbe.exit_code
+        version = $cargoProbe.output
+    }
+    node = [ordered]@{
+        passed = $nodeProbe.passed -and ($nodeProbe.output -match '^v\d+\.\d+\.\d+$')
+        exit_code = $nodeProbe.exit_code
+        version = $nodeProbe.output
+    }
+    npm = [ordered]@{
+        passed = $npmProbe.passed -and ($npmProbe.output -match '^\d+\.\d+\.\d+$')
+        exit_code = $npmProbe.exit_code
+        version = $npmProbe.output
     }
     msvc_cpp = [ordered]@{
-        passed = [bool]$vsInstance -and (Test-Path -LiteralPath $cl) -and
+        passed = [bool]$vsInstance -and [bool]$cl -and [bool]$link -and
+            (Test-Path -LiteralPath $cl) -and
             (Test-Path -LiteralPath $link)
         installation_version = if ($vsInstance) { $vsInstance.installationVersion } else { $null }
     }
@@ -112,8 +177,11 @@ $checks = [ordered]@{
         version = if ($webView) { $webView.pv } else { $null }
     }
     project_local_tauri_cli = [ordered]@{
-        passed = Test-Path -LiteralPath $tauriCli
-        version = if (Test-Path -LiteralPath $tauriCli) { (& $tauriCli --version) } else { $null }
+        passed = $tauriProbe.passed -and
+            ($tauriProbe.output -eq "tauri-cli $expectedTauriVersion")
+        exit_code = $tauriProbe.exit_code
+        version = $tauriProbe.output
+        expected_version = $expectedTauriVersion
     }
     d3_baseline_ref = [ordered]@{
         passed = ($tagCommit -eq '2ad24de9bdc166b7c04bd1124bd7054c95c2ce63') -and

@@ -7,3 +7,8 @@ root is repository-root `src-tauri`, subject to
 
 Do not run `tauri init`, create `src-tauri`, add plugins or broaden capabilities
 until the preflight passes and the spike entry decision is reviewed.
+
+Use `npm run preflight:windows` for the local executable/version checks and
+`npm run audit:official` for the network advisory check. The latter command is
+intentionally pinned to `https://registry.npmjs.org`; the configured default
+npm mirror is not accepted as audit evidence.

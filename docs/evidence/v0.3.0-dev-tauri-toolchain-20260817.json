@@ -22,6 +22,8 @@
     "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
     "cargo": "1.97.1 (c980f4866 2026-06-30)",
     "rust_target": "1.97.1-x86_64-pc-windows-msvc (default)",
+    "node": "v24.15.0",
+    "npm": "11.12.1",
     "visual_studio_build_tools": "17.14.37531.7",
     "msvc_cl": "19.44.35228",
     "msvc_link": "14.44.35228.0",
@@ -30,14 +32,22 @@
     "tauri_cli": "2.11.4"
   },
   "execution_proof": {
-    "preflight": "PASS_8_OF_8",
+    "preflight": "PASS_10_OF_10",
+    "preflight_directly_executed_by_test": true,
     "cargo_check": "PASS",
     "cargo_build_msvc_link": "PASS",
     "linked_probe_execution": "PASS_HELLO_WORLD",
     "temporary_probe_cleanup": "COMPLETE",
     "tauri_info_environment": "PASS_AFTER_CURRENT_PROCESS_PATH_REFRESH",
-    "tauri_cli_npm_audit": "PASS_ZERO_VULNERABILITIES",
-    "post_baseline_python_regression": "PASS_451_OF_451"
+    "tauri_cli_npm_audit": {
+      "status": "PASS_ZERO_VULNERABILITIES",
+      "command": "npm --prefix tools/tauri-spike audit --registry=https://registry.npmjs.org --json",
+      "registry": "https://registry.npmjs.org",
+      "exit_code": 0,
+      "vulnerabilities_total": 0
+    },
+    "complete_spike_gate": "PASS_LOCAL_10_OF_10_PLUS_OFFICIAL_AUDIT_ZERO",
+    "post_baseline_python_regression": "PASS_452_OF_452"
   },
   "baseline_anchor": {
     "ref": "refs/tags/v0.3.0-dev-d3-final",
@@ -46,9 +56,10 @@
   },
   "boundary": {
     "src_tauri_created": false,
+    "src_tauri_state_record_kind": "point_in_time_snapshot_not_presence_gate",
     "product_code_authorized": false,
     "tauri_dev_claimed": false,
     "windows_package_claimed": false,
-    "reason": "This evidence closes host prerequisites and authorizes only the separately gated minimal scaffold. No Tauri product source exists yet."
+    "reason": "This evidence closes host prerequisites and authorizes only the separately gated minimal scaffold. src-tauri may be absent before the scaffold commit or present afterward under the exact-root constraints; neither state authorizes product code."
   }
 }

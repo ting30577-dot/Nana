@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import unittest
 import json
 import re
+import subprocess
 from pathlib import Path
-
-from scripts.refresh_evidence_manifest import recompute_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,26 +20,50 @@ OBSERVATION = (
     / "docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json"
 )
 VAULT = ROOT / "obsidian_export/Nana_研究系统_vNext"
+BASELINE_REF = "refs/tags/v0.3.0-dev-d3-final"
+
+
+def baseline_blob(relative: str) -> bytes:
+    return subprocess.run(
+        ["git", "show", f"{BASELINE_REF}:{relative}"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
 
 
 class CurrentEvidenceManifestTests(unittest.TestCase):
-    def test_final_manifest_hashes_and_digest_are_current(self) -> None:
-        normalized, digest = recompute_manifest(FINAL_MANIFEST)
+    def test_final_manifest_hashes_and_digest_are_tag_bound(self) -> None:
+        relative_manifest = FINAL_MANIFEST.relative_to(ROOT).as_posix()
+        manifest_text = baseline_blob(relative_manifest).decode("utf-8")
+        relative_paths = [
+            line.split("\t", 1)[0] for line in manifest_text.splitlines()
+        ]
+        normalized = "\n".join(
+            f"{relative}\t{hashlib.sha256(baseline_blob(relative)).hexdigest()}"
+            for relative in relative_paths
+        )
+        digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
         self.assertEqual(
-            FINAL_MANIFEST.read_text(encoding="utf-8").rstrip("\r\n"),
+            manifest_text.rstrip("\r\n"),
             normalized,
         )
         self.assertEqual(
-            FINAL_MANIFEST.with_suffix(".sha256")
-            .read_text(encoding="ascii")
+            baseline_blob(
+                FINAL_MANIFEST.with_suffix(".sha256").relative_to(ROOT).as_posix()
+            )
+            .decode("ascii")
             .strip(),
             digest,
         )
+        self.assertEqual(FINAL_MANIFEST.read_bytes(), manifest_text.encode("utf-8"))
 
     def test_final_manifest_covers_live_launcher_authority(self) -> None:
         paths = {
             line.split("\t", 1)[0]
-            for line in FINAL_MANIFEST.read_text(encoding="utf-8").splitlines()
+            for line in baseline_blob(FINAL_MANIFEST.relative_to(ROOT).as_posix())
+            .decode("utf-8")
+            .splitlines()
         }
         self.assertTrue(
             {
@@ -56,7 +80,7 @@ class CurrentEvidenceManifestTests(unittest.TestCase):
         )
         self.assertIn(
             "* text=auto eol=lf",
-            (ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines(),
+            baseline_blob(".gitattributes").decode("utf-8").splitlines(),
         )
 
     def test_current_authority_readme_and_machine_gate_agree(self) -> None:

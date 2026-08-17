@@ -7,9 +7,10 @@ product code**.
 
 ## Exact opening
 
-The only newly allowed Tauri source root is repository-root `src-tauri`. This
-decision does not create that directory. Scaffolding may begin only after the
-machine-readable prerequisite list in
+The only newly allowed Tauri source root is repository-root `src-tauri`. Its
+absence before the scaffold commit and its presence after that commit are both
+valid states. If present, it must be a direct, non-reparse directory under the
+repository root. Scaffolding may begin only after the machine-readable prerequisite list in
 `config/tauri-spike-entry-policy.json` is verified on the build host.
 
 The existing `config/release-input-allowlist.json` remains the product-package
@@ -32,9 +33,12 @@ release input policy into a Tauri packaging policy.
 
 ## Entry and exit checks
 
-Entry requires a verified D3 baseline tag, Rust MSVC, Microsoft C++ Build
-Tools, Windows SDK, WebView2 and a repository-local pinned Tauri CLI. The
-preflight is `scripts/check_tauri_windows_prereqs.ps1`.
+Entry requires a verified D3 baseline tag, executable Node/npm, Rust MSVC,
+Microsoft C++ Build Tools, Windows SDK, WebView2, an executable
+repository-local pinned Tauri CLI, and a zero-vulnerability audit against the
+explicit npm official registry. Local preflight is
+`scripts/check_tauri_windows_prereqs.ps1`; the complete local-plus-network gate
+is `scripts/check_tauri_spike_gate.ps1`.
 
 The first spike implementation must still pass a separate review before it is
 called product code. That review must cover CSP/navigation, typed IPC,
