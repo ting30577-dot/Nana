@@ -1,0 +1,38 @@
+{
+  "schema": "nana.tauri.spike_entry_policy.v1",
+  "date": "2026-08-17",
+  "status": "spike_entry_authorized_toolchain_verified",
+  "supersedes": "contract_frozen_not_implemented for spike entry only",
+  "product_code_allowed": false,
+  "spike_code_allowed": true,
+  "allowed_source_roots": ["src-tauri"],
+  "allowed_phase": "minimal_windows_shell_spike",
+  "canonical_writer": "python_sidecar_only",
+  "rust_role": [
+    "desktop_window",
+    "single_instance_lifecycle",
+    "packaged_sidecar_identity_verification",
+    "audited_os_integration"
+  ],
+  "forbidden": {
+    "copy_python_business_rules": true,
+    "arbitrary_shell": true,
+    "arbitrary_python": true,
+    "arbitrary_path": true,
+    "arbitrary_url": true,
+    "remote_content": true,
+    "remote_publish": true,
+    "updater": true,
+    "signing_claim": true
+  },
+  "required_before_scaffold": [
+    "d3_release_baseline_tag_verified",
+    "rust_msvc_toolchain_verified",
+    "msvc_cpp_build_tools_verified",
+    "windows_sdk_verified",
+    "webview2_verified",
+    "project_local_tauri_cli_verified"
+  ],
+  "decision_record": "docs/tauri_spike_entry_decision_20260817.md",
+  "toolchain_evidence": "docs/evidence/v0.3.0-dev-tauri-toolchain-20260817.json"
+}

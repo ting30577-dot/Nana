@@ -1,0 +1,9 @@
+{
+  "schema": "nana.d3.release_baseline_anchor.v1",
+  "date": "2026-08-17",
+  "ref": "refs/tags/v0.3.0-dev-d3-final",
+  "tag_kind": "annotated",
+  "peeled_commit": "2ad24de9bdc166b7c04bd1124bd7054c95c2ce63",
+  "expected_parent": "278f3a4186d7d0f85f6caf715c2882d63c589fc6",
+  "verification": "resolve the Git ref and its first parent; do not compare only embedded strings"
+}
