@@ -30,3 +30,19 @@ Thumbs.db
 
 *.sqlite3
 *.db
+*.db-wal
+*.db-shm
+workspace.owner.lock
+
+# Product/runtime and user-observation data never belongs in the source tree.
+/workspaces/
+/usability_sessions/
+/exports/
+/artifacts/
+/artifact_store/
+/logs/
+/crash/
+/crash_dumps/
+/temp/
+/.nana-session*
+/*.runtime.log

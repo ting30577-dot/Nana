@@ -7,9 +7,10 @@ Nana is a Windows-first, local-first personal **Research & Engineering OS**. Its
 target is to turn a real research or engineering question into traceable
 evidence, reproducible runs, reusable artifacts, and a user-approved decision.
 
-> Current implementation: legacy `v0.2.0-alpha` plus a verified
-> `v0.3.0-dev` React/FastAPI vertical slice
-> Current product direction: `v0.3.0`; D3 is accepted by the current authority
+> Current implementation: legacy `v0.2.0-alpha` plus a technically verified
+> `v0.3.0-dev` React/FastAPI vertical slice.
+> Current D3 acceptance status: `acceptance_pending`; `d3_complete=false` until
+> the required observed target-user session is recorded. See the authority.
 
 The present PySide6 application is still runnable and its tests are retained as
 a regression baseline. It is not the target UI or data architecture. New
@@ -89,13 +90,13 @@ Set-Location .\nana_web
 npm.cmd ci
 npm.cmd run build
 Set-Location ..
-New-Item -ItemType Directory -Force .\workspaces\d3 | Out-Null
-New-Item -ItemType Directory -Force .\exports\d3-draft | Out-Null
-.\.venv\Scripts\python.exe .\scripts\run_d3_dev_journey.py .\workspaces\d3\nana.db
+.\.venv\Scripts\python.exe .\scripts\run_d3_dev_journey.py
 ```
 
-At the prompt, select the absolute path of `.\exports\d3-draft`. It must remain
-an empty dedicated local directory when selected. The browser consumes a
+The launcher stores its default Workspace under the OS Nana user-data root
+(`%LOCALAPPDATA%\Nana` on Windows), never in the source checkout. At the
+prompt, select an existing empty dedicated local directory outside this
+repository; the launcher prints the recommended user-data export parent. The browser consumes a
 one-time URL fragment, holds the Bearer only in JavaScript memory, and uses an
 HttpOnly, same-site recovery cookie to obtain a fresh in-memory copy after a
 page refresh. Closing the launcher process ends that recovery session.

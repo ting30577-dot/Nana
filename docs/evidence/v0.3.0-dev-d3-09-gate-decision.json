@@ -2,15 +2,22 @@
   "schema": "nana.d3.final_gate.v1",
   "stage": "D3-09",
   "version": "v0.3.0-dev-D3",
-  "date": "2026-08-13",
+  "date": "2026-08-17",
   "governance": {
     "mode": "codex_only",
     "decision_record": "docs/d3_codex_only_governance_decision_20260811.md",
     "claude_called_in_current_gate": false,
     "historical_claude_results_relabelled": false
   },
-  "status": "codex_only_accept",
-  "d3_complete": true,
+  "status": "acceptance_pending",
+  "technical_slice_status": "codex_only_accept",
+  "d3_complete": false,
+  "blocking_gate": {
+    "id": "observed_target_user_session",
+    "required": true,
+    "satisfied": false,
+    "reason": "No completed 30-minute target-user observation Artifact is registered."
+  },
   "scope": {
     "locked_execution": "trusted frozen python.unittest.locked fixture only",
     "external_effect": "one-time controlled fixed-local public draft export only",
@@ -18,12 +25,33 @@
     "hostile_code_sandbox_claim": false
   },
   "evidence": {
+    "snapshot_state": "current_refrozen",
+    "full_python": {
+      "total": 445,
+      "passed": 445,
+      "skipped": 0,
+      "status": "PASS"
+    },
+    "browser_release_matrix": {
+      "total": 27,
+      "passed": 27,
+      "retries": 0,
+      "status": "PASS"
+    },
     "ten_consecutive_full_success": "PASS_10_OF_10_RETRIES_0",
-    "browser_release_matrix": "PASS_25_OF_25_RETRIES_0",
-    "strict_python_resourcewarning": "PASS_204_WITH_2_PLATFORM_SKIPS",
-    "full_python": "PASS_412_WITH_2_PLATFORM_SKIPS",
     "typescript_vitest_build": "PASS_67_VITEST_PLUS_PROJECTION_SELF_TEST",
-    "final_full_verification": "PASS",
-    "manifest": "PASS_ZERO_ERRORS"
-  }
+    "runtime_data_migration": "PASS_COPY_VERIFY_COMMIT_RECOVERABLE_ARCHIVE",
+    "release_package_audit": "PASS_212_ENTRIES_ZERO_FORBIDDEN",
+    "manifest": {
+      "path": "docs/evidence/v0.3.0-dev-d3-final-manifest.txt",
+      "record_kind": "current_worktree"
+    }
+  },
+  "supersedes": [
+    {
+      "record": "this file before 2026-08-17",
+      "historical_status": "codex_only_accept",
+      "reason": "The old gate omitted the still-required observed usability gate and carried stale 412/25 counts."
+    }
+  ]
 }

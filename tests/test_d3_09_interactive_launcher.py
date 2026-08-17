@@ -16,12 +16,32 @@ from unittest.mock import patch
 from httpx import ASGITransport, AsyncClient
 
 from scripts.run_d3_dev_journey import (
+    _parser,
     _open_browser_when_ready,
     create_interactive_runtime,
 )
+from nana_sidecar.user_data import UserDataBoundaryError
 
 
 class D309InteractiveLauncherTests(unittest.IsolatedAsyncioTestCase):
+    def test_database_argument_is_optional_for_user_data_default(self) -> None:
+        self.assertIsNone(_parser().parse_args([]).database)
+
+    def test_launcher_rejects_a_workspace_inside_the_source_checkout(self) -> None:
+        with self.assertRaisesRegex(UserDataBoundaryError, "must not be written"):
+            create_interactive_runtime(
+                database=Path(__file__).resolve().parents[1]
+                / "workspaces"
+                / "forbidden"
+                / "nana.db",
+                port=43130,
+                build_root=Path(__file__).resolve().parents[1]
+                / "nana_web"
+                / "dist",
+                input_fn=lambda _prompt: "unused",
+                bootstrap_secret="b" * 43,
+            )
+
     def test_browser_opener_waits_beyond_the_legacy_retry_window(self) -> None:
         attempts = 0
 

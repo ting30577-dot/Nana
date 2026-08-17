@@ -616,17 +616,27 @@ class D3JourneyCommandTests(unittest.TestCase):
             resources=(descriptor,),
             now=lambda: NOW,
         )
-        with self.assertRaisesRegex(CommandExecutionError, "resource_reparse"):
+        project = service.execute(REQUESTS.validate_python({
+            "type": "CreateProject",
+            "command_id": str(uuid4()),
+            "expected_revision": 1,
+            "workspace_id": str(self.spec.workspace_id),
+            "title": "Symlink rejection",
+            "data_class": "public",
+        }))
+        project_id = self._affected_id(project, "project")
+        with self.assertRaises(CommandExecutionError) as caught:
             service.execute(REQUESTS.validate_python({
-                "type": "CreateLocator",
+                "type": "RegisterResource",
                 "command_id": str(uuid4()),
                 "expected_revision": 1,
-                "resource_descriptor_id": descriptor.descriptor_id,
-                "locator_type": "local_file",
-                "path": descriptor.logical_ref,
-                "span_start": 0,
-                "span_end": len("outside\n"),
+                "project_id": str(project_id),
+                "kind": "local_file",
+                "logical_ref": descriptor.logical_ref,
+                "media_type": descriptor.media_type,
+                "data_class": descriptor.data_class.value,
             }))
+        self.assertEqual(caught.exception.error.details["reason"], "resource_reparse")
 
     def test_cross_project_evidence_is_rejected(self) -> None:
         loaded = load_dev_journey(self.service, self.definition)

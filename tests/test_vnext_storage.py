@@ -7,6 +7,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from nana_sidecar.contracts.builtin_capabilities import (
     python_unittest_locked_registry_entry,
@@ -206,6 +207,34 @@ class VNextStorageTests(unittest.TestCase):
         self.assertFalse(
             {"problems", "research_threads", "research_sources"} & tables
         )
+
+    def test_existing_database_probe_retries_transient_crash_release_io(self) -> None:
+        initialize_database(self.path).close()
+        from nana_sidecar.storage import database as database_module
+
+        original = database_module._current_version
+        attempts = 0
+
+        def transient_then_current(connection: sqlite3.Connection) -> int:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise sqlite3.OperationalError("disk I/O error")
+            return original(connection)
+
+        with (
+            patch.object(
+                database_module,
+                "_current_version",
+                side_effect=transient_then_current,
+            ),
+            patch.object(database_module.time, "sleep") as sleep,
+        ):
+            connection = initialize_database(self.path)
+        connection.close()
+
+        self.assertGreaterEqual(attempts, 4)
+        sleep.assert_called_once_with(database_module._TRANSIENT_DISK_IO_DELAYS[0])
 
     def test_capability_registry_entry_json_round_trips_from_storage(self) -> None:
         entry = python_unittest_locked_registry_entry()

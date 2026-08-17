@@ -29,13 +29,22 @@ from nana_sidecar.export_selection import ExportSelectionRegistry
 from nana_sidecar.runtime_app import JourneyRuntimeConfig, create_runtime_app
 from nana_sidecar.sse import LocalSession
 from nana_sidecar.storage.workspace_lock import WorkspaceRuntime
+from nana_sidecar.user_data import prepare_user_data_layout, validate_runtime_path
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run Nana D3 with an interactive fixed-local draft target.",
     )
-    parser.add_argument("database", type=Path)
+    parser.add_argument(
+        "database",
+        type=Path,
+        nargs="?",
+        help=(
+            "optional absolute database path outside the Nana application tree; "
+            "the default is the Nana user-data root"
+        ),
+    )
     parser.add_argument(
         "--port",
         type=int,
@@ -62,7 +71,8 @@ def create_interactive_runtime(
 
     if not 1 <= port <= 65535:
         raise ValueError("port must be between 1 and 65535")
-    database.parent.mkdir(parents=True, exist_ok=True)
+    database = validate_runtime_path(database, application_root=ROOT)
+    database.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     if not database.parent.is_dir():
         raise ValueError("the Workspace database parent is not a directory")
     token = "d3-local-" + secrets.token_urlsafe(32)
@@ -149,10 +159,22 @@ def _open_browser_when_ready(
 
 def main() -> int:
     args = _parser().parse_args()
+    if args.database is None:
+        layout = prepare_user_data_layout(application_root=ROOT)
+        database = layout.default_workspace_database
+        export_hint = layout.exports
+    else:
+        database = validate_runtime_path(args.database, application_root=ROOT)
+        export_hint = prepare_user_data_layout(application_root=ROOT).exports
+    print(
+        "Nana writable data root is outside the application tree. "
+        f"Choose or create a dedicated empty export folder under {export_hint}.",
+        file=sys.stderr,
+    )
     listener, port = _listener(args.port)
     bootstrap_secret = secrets.token_urlsafe(32)
     app, session, summary = create_interactive_runtime(
-        database=args.database,
+        database=database,
         port=port,
         build_root=args.build_root,
         bootstrap_secret=bootstrap_secret,

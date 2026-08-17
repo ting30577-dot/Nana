@@ -1,0 +1,25 @@
+{
+  "completed_at": "2026-08-17T02:59:02.978844Z",
+  "destination_class": "OS Nana user-data root",
+  "records": [
+    {
+      "backup_label": "backups/runtime-migration-20260817T025902Z/workspaces",
+      "bytes": 1774677,
+      "destination_class": "Nana user-data/workspaces",
+      "digest": "69a27d234494adb8e21018619318d2bda80a4730f4962880b668d801e9a9400b",
+      "disposition": "copied_verified_destination_committed_source_archived",
+      "files": 8,
+      "source_label": "workspaces"
+    },
+    {
+      "backup_label": "backups/runtime-migration-20260817T025902Z/usability_sessions",
+      "bytes": 450808,
+      "destination_class": "Nana user-data/usability_sessions",
+      "digest": "9abbe269077a21fb0fd3c011745636f11be805a80d48950064d84bb883739bda",
+      "disposition": "copied_verified_destination_committed_source_archived",
+      "files": 4,
+      "source_label": "usability_sessions"
+    }
+  ],
+  "schema": "nana.runtime_data_migration.v1"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "nana.release_input_allowlist.v1",
+  "current_packager": "pyinstaller_onedir",
+  "entrypoints": ["main.py"],
+  "source_roots": ["algorithms", "assets", "nana_core", "ui", "visualizer"],
+  "allowed_package_top_level": ["Nana.exe", "_internal", "PACKAGE_MANIFEST.sha256"],
+  "forbidden_runtime_components": [
+    "workspaces", "usability_sessions", "exports", "artifacts",
+    "artifact_store", "logs", "crash", "crash_dumps", "temp"
+  ],
+  "forbidden_exact_names": [
+    ".env", "workspace.owner.lock", "credentials.json", "session.json",
+    "startup-secret.txt"
+  ],
+  "forbidden_suffixes": [".db", ".db-wal", ".db-shm", ".sqlite3"],
+  "credential_canaries": [
+    "NANA_RELEASE_CREDENTIAL_CANARY_DO_NOT_PACKAGE",
+    "NANA_RELEASE_BOOTSTRAP_SECRET_DO_NOT_PACKAGE"
+  ],
+  "tauri": {
+    "status": "contract_frozen_not_implemented",
+    "product_code_allowed": false,
+    "rust_role": "desktop shell, lifecycle, and audited OS integration only",
+    "canonical_writer": "python_sidecar_only",
+    "ipc": "default_deny_typed_allowlist",
+    "arbitrary_shell": false,
+    "arbitrary_path": false,
+    "arbitrary_url": false,
+    "remote_content": false
+  }
+}

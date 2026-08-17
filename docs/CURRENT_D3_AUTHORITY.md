@@ -1,7 +1,14 @@
 # Nana v0.3.0-dev D3 current authority
 
-Date: 2026-08-16  
-Status: **current implementation and verification authority; user-observation gate pending**
+<!-- nana-current-authority
+status: acceptance_pending
+technical_slice_status: codex_only_accept
+d3_complete: false
+gate_json: docs/evidence/v0.3.0-dev-d3-09-gate-decision.json
+-->
+
+Date: 2026-08-17
+Status: **acceptance pending; D3 is not complete**
 
 This is the single repository authority for the current D3 worktree. Earlier
 handoffs, completion audits, scan packets, acceptance records and evidence
@@ -33,11 +40,14 @@ summaries are historical snapshots unless this page explicitly cites them.
 - Runtime diagnostics: readiness polling reports early child exit code and
   bounded stderr instead of collapsing every startup failure into a five-second
   timeout message.
+- Crash restart retries only the exact transient Windows SQLite `disk i/o
+  error`, across both read-only schema probing and writable reopen, while the
+  Workspace OS lock is held; all other SQLite failures remain fail-closed.
 
 ## Current verification
 
 - Python unittest discovery, freshly rerun after the launcher/readiness repair:
-  423 run; 421 passed, 2 platform skips.
+  445 run; 445 passed, 0 skipped.
 - Vitest: 67/67; projection self-test passed.
 - TypeScript no-emit check and Vite production build passed.
 - Playwright: 10/10 consecutive complete success journeys, retries=0.
@@ -49,23 +59,29 @@ summaries are historical snapshots unless this page explicitly cites them.
 - D0 and current D3 manifests are regenerated from this worktree and checked
   by automated per-file/digest tests; the final manifest explicitly includes
   `main.tsx`, the launcher and this authority.
+- Windows Developer Mode is enabled and both symlink escape tests execute their
+  assertions and pass; neither is skipped with WinError 1314.
+- Release package audit: 212 files, zero forbidden runtime/user-data paths or
+  credential canaries; deterministic package digest
+  `e7799935642bb4e94df0cd89ed634a3bf8ec76dbb0a5b04e58817d679c6824d6`.
+- Legacy `workspaces` and `usability_sessions` were copied into the OS Nana
+  user-data root, content-verified, and the source copies moved to a recoverable
+  ignored backup. The migration receipt contains counts and hashes but no raw
+  user path.
 
 ## Open acceptance and environment gates
 
 - The planned 30-minute observed `create → plan → run → approve → artifact`
   session still requires the real target user and observer. No automated run is
   represented as a `UsabilitySession` Artifact.
-- Two Windows symlink tests still skip with WinError 1314 because this process
-  lacks symbolic-link privilege; they require Developer Mode or an elevated
-  test environment.
 - PySide6 6.11.1 on Python 3.12.13 emits the same shutdown ResourceWarning on a
   bare `import PySide6.QtCore`; it is isolated to the frozen legacy UI stack and
   is not suppressed or misreported as repaired.
 
 ## Delivery boundary
 
-The inherited modified/untracked files were inventoried against the committed
-D1 baseline. The staged set is limited to the D2/D3 implementation, tests,
-evidence, planning exports and their required integration edits; generated
-delivery archives, local backups and Playwright output are excluded. This
-branch freezes that reviewed set as one replayable D2/D3 delivery commit.
+The D2/D3 technical implementation is committed, but the current security
+repair is not a release baseline until its tests, evidence, Vault sync,
+manifest and commit are frozen together. Runtime/user data is outside the
+source tree and excluded from every release package. Historical completion
+records do not override this page or the current machine gate.

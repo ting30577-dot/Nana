@@ -20,6 +20,9 @@ class IncompatibleDatabaseError(RuntimeError):
     pass
 
 
+_TRANSIENT_DISK_IO_DELAYS = (0.01, 0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.0, 1.0, 1.0)
+
+
 @dataclass(frozen=True, slots=True)
 class MigrationPlan:
     current_version: int
@@ -110,19 +113,44 @@ def _open_after_readonly_probe(path: str | Path) -> sqlite3.Connection:
 
     An abruptly terminated owner can leave SQLite's WAL/SHM teardown racing
     the first writable reopen.  The Workspace OS lock is already held by the
-    caller, so a short retry is safe and cannot admit a second owner.  Only the
+    caller, so a bounded retry is safe and cannot admit a second owner. Only the
     transient ``disk I/O error`` is retried; every other SQLite failure remains
     fail-closed.
     """
 
-    delays = (0.01, 0.025, 0.05, 0.1, 0.2)
-    for attempt in range(len(delays) + 1):
+    for attempt in range(len(_TRANSIENT_DISK_IO_DELAYS) + 1):
         try:
             return _open(path)
         except sqlite3.OperationalError as exc:
-            if "disk I/O error" not in str(exc).lower() or attempt == len(delays):
+            if (
+                "disk i/o error" not in str(exc).lower()
+                or attempt == len(_TRANSIENT_DISK_IO_DELAYS)
+            ):
                 raise
-            time.sleep(delays[attempt])
+            time.sleep(_TRANSIENT_DISK_IO_DELAYS[attempt])
+    raise AssertionError("unreachable")
+
+
+def _probe_existing_database(path: str | Path) -> int:
+    """Validate an existing DB, tolerating only crash-release disk I/O races."""
+
+    for attempt in range(len(_TRANSIENT_DISK_IO_DELAYS) + 1):
+        readonly: sqlite3.Connection | None = None
+        try:
+            readonly = _open_readonly(path)
+            current = _current_version(readonly)
+            _validate_existing_schema(readonly, current, _user_tables(readonly))
+            return current
+        except sqlite3.OperationalError as exc:
+            if (
+                "disk i/o error" not in str(exc).lower()
+                or attempt == len(_TRANSIENT_DISK_IO_DELAYS)
+            ):
+                raise
+        finally:
+            if readonly is not None:
+                readonly.close()
+        time.sleep(_TRANSIENT_DISK_IO_DELAYS[attempt])
     raise AssertionError("unreachable")
 
 
@@ -234,16 +262,7 @@ def initialize_database(path: str | Path) -> sqlite3.Connection:
 
     target = Path(path)
     if target.exists() and target.stat().st_size > 0:
-        readonly = _open_readonly(target)
-        try:
-            current = _current_version(readonly)
-            _validate_existing_schema(
-                readonly,
-                current,
-                _user_tables(readonly),
-            )
-        finally:
-            readonly.close()
+        _probe_existing_database(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     connection = _open_after_readonly_probe(target)
     try:

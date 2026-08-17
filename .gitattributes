@@ -1,3 +1,5 @@
+* text=auto eol=lf
+
 /.gitignore text eol=lf
 /requirements.txt text eol=lf
 /algorithms/sliding_window.py text eol=lf
