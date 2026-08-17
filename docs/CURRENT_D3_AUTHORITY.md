@@ -1,14 +1,15 @@
 # Nana v0.3.0-dev D3 current authority
 
 <!-- nana-current-authority
-status: acceptance_pending
-technical_slice_status: codex_only_accept
-d3_complete: false
+status: acceptance_complete_baseline_pending
+technical_slice_status: sol_accept
+d3_complete: true
+release_baseline_frozen: false
 gate_json: docs/evidence/v0.3.0-dev-d3-09-gate-decision.json
 -->
 
 Date: 2026-08-17
-Status: **acceptance pending; D3 is not complete**
+Status: **D3 acceptance complete; release-baseline refreeze pending**
 
 This is the single repository authority for the current D3 worktree. Earlier
 handoffs, completion audits, scan packets, acceptance records and evidence
@@ -46,8 +47,8 @@ summaries are historical snapshots unless this page explicitly cites them.
 
 ## Current verification
 
-- Python unittest discovery, freshly rerun after the launcher/readiness repair:
-  445 run; 445 passed, 0 skipped.
+- Python unittest discovery, freshly rerun after the observation registration:
+  446 run; 446 passed, 0 skipped.
 - Vitest: 67/67; projection self-test passed.
 - TypeScript no-emit check and Vite production build passed.
 - Playwright: 10/10 consecutive complete success journeys, retries=0.
@@ -69,19 +70,28 @@ summaries are historical snapshots unless this page explicitly cites them.
   ignored backup. The migration receipt contains counts and hashes but no raw
   user path.
 
-## Open acceptance and environment gates
+## Acceptance resolution and environment note
 
-- The planned 30-minute observed `create → plan → run → approve → artifact`
-  session still requires the real target user and observer. No automated run is
-  represented as a `UsabilitySession` Artifact.
+- The target user attested that the 30-minute observation ended and explicitly
+  directed that the D3 observation gate be registered complete. The original
+  observer log, clarification count and 10 state-question answers were not
+  retained, so the evidence record does not fabricate those measurements or
+  claim subjective satisfaction. D3 uses a one-time, product-owner-approved
+  evidence exception recorded in
+  `docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json`.
+- The product owner temporarily waived Claude review for this gate and accepted
+  Sol/Codex review as sufficient until the relay is repaired. A later Claude
+  review may reopen a concrete finding, but its current absence is not a gate.
 - PySide6 6.11.1 on Python 3.12.13 emits the same shutdown ResourceWarning on a
   bare `import PySide6.QtCore`; it is isolated to the frozen legacy UI stack and
   is not suppressed or misreported as repaired.
 
 ## Delivery boundary
 
-The D2/D3 technical implementation is committed, but the current security
-repair is not a release baseline until its tests, evidence, Vault sync,
-manifest and commit are frozen together. Runtime/user data is outside the
-source tree and excluded from every release package. Historical completion
-records do not override this page or the current machine gate.
+The observation decision changes the current evidence set after commit
+`76584af`. Therefore the only remaining D3 delivery gate is to regenerate the
+manifest, bind the gate to the resulting commit, rerun the frozen verification
+set and mark `release_baseline_frozen=true`. Until then D3 acceptance is
+complete but Tauri construction is not authorized. Runtime/user data remains
+outside the source tree and excluded from every release package. Historical
+completion records do not override this page or the current machine gate.

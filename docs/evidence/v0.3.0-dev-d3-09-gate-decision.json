@@ -4,19 +4,26 @@
   "version": "v0.3.0-dev-D3",
   "date": "2026-08-17",
   "governance": {
-    "mode": "codex_only",
-    "decision_record": "docs/d3_codex_only_governance_decision_20260811.md",
-    "claude_called_in_current_gate": false,
+    "mode": "product_owner_authorized_sol_only",
+    "decision_record": "docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json",
+    "claude_call_attempted_in_current_gate": true,
+    "claude_verdict_obtained": false,
+    "claude_required_in_current_gate": false,
+    "claude_waiver_temporary": true,
     "historical_claude_results_relabelled": false
   },
-  "status": "acceptance_pending",
-  "technical_slice_status": "codex_only_accept",
-  "d3_complete": false,
+  "status": "acceptance_complete_baseline_pending",
+  "technical_slice_status": "sol_accept",
+  "d3_complete": true,
+  "release_baseline_frozen": false,
   "blocking_gate": {
     "id": "observed_target_user_session",
     "required": true,
-    "satisfied": false,
-    "reason": "No completed 30-minute target-user observation Artifact is registered."
+    "satisfied": true,
+    "resolution": "product_owner_evidence_exception",
+    "evidence": "docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json",
+    "measured_original_rubric_pass_claimed": false,
+    "reason": "The product owner attested that the 30-minute observation ended and explicitly accepted a D3-only evidence exception for the missing granular observer record."
   },
   "scope": {
     "locked_execution": "trusted frozen python.unittest.locked fixture only",
@@ -25,10 +32,10 @@
     "hostile_code_sandbox_claim": false
   },
   "evidence": {
-    "snapshot_state": "current_refrozen",
+    "snapshot_state": "pending_post_attestation_refreeze",
     "full_python": {
-      "total": 445,
-      "passed": 445,
+      "total": 446,
+      "passed": 446,
       "skipped": 0,
       "status": "PASS"
     },
@@ -44,7 +51,9 @@
     "release_package_audit": "PASS_212_ENTRIES_ZERO_FORBIDDEN",
     "manifest": {
       "path": "docs/evidence/v0.3.0-dev-d3-final-manifest.txt",
-      "record_kind": "current_worktree"
+      "record_kind": "historical_pre_owner_attestation",
+      "current": false,
+      "required_next_state": "commit_bound_release_baseline"
     }
   },
   "supersedes": [
@@ -52,6 +61,11 @@
       "record": "this file before 2026-08-17",
       "historical_status": "codex_only_accept",
       "reason": "The old gate omitted the still-required observed usability gate and carried stale 412/25 counts."
+    },
+    {
+      "record": "2026-08-17 pre-attestation gate",
+      "historical_status": "acceptance_pending",
+      "reason": "The product owner later attested completion and authorized a D3-only evidence exception plus temporary Claude waiver."
     }
   ]
 }
