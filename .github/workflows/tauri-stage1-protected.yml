@@ -33,6 +33,10 @@ jobs:
         with:
           python-version: 3.12.13
 
+      - name: Scan PR release privacy
+        shell: pwsh
+        run: python scripts/nana_context.py release-privacy-scan --base main --head HEAD
+
       - name: Set up Node 24.15.0
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:

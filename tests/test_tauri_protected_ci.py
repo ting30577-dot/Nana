@@ -48,6 +48,12 @@ class TauriProtectedCITests(unittest.TestCase):
             self.workflow,
         )
 
+    def test_release_privacy_scan_runs_against_the_pr_file_set(self) -> None:
+        self.assertIn(
+            "python scripts/nana_context.py release-privacy-scan --base main --head HEAD",
+            self.workflow,
+        )
+
     def test_ci_toolchain_and_security_auditor_are_version_pinned(self) -> None:
         for expected in (
             "python-version: 3.12.13",

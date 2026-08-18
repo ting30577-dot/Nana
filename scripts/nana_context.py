@@ -68,6 +68,141 @@ PRIVACY_PATTERNS = {
     ),
 }
 
+RELEASE_BINARY_SUFFIXES = frozenset(
+    {
+        ".7z",
+        ".bmp",
+        ".class",
+        ".db",
+        ".dll",
+        ".docx",
+        ".dylib",
+        ".exe",
+        ".gif",
+        ".gz",
+        ".ico",
+        ".jar",
+        ".jpeg",
+        ".jpg",
+        ".mp3",
+        ".mp4",
+        ".otf",
+        ".pdf",
+        ".png",
+        ".pptx",
+        ".pyc",
+        ".pyd",
+        ".so",
+        ".sqlite",
+        ".sqlite3",
+        ".tar",
+        ".ttf",
+        ".wav",
+        ".wasm",
+        ".webp",
+        ".whl",
+        ".woff",
+        ".woff2",
+        ".xlsx",
+        ".zip",
+    }
+)
+
+RELEASE_PLACEHOLDER_VALUES = frozenset(
+    {
+        "",
+        "-",
+        "...",
+        "n/a",
+        "na",
+        "none",
+        "null",
+        "false",
+        "masked",
+        "placeholder",
+        "redacted",
+        "sample",
+        "test",
+        "unknown",
+        "bytes",
+        "bool",
+        "dict",
+        "field",
+        "float",
+        "int",
+        "object",
+        "str",
+        "secretstr",
+        "licensed",
+        "never",
+        "local",
+        "captured",
+        "candidate",
+        "category",
+        "match",
+        "pattern",
+        "result",
+        "value",
+        "groupindex",
+        "<none>",
+        "<null>",
+        "<redacted>",
+        "<masked>",
+        "<placeholder>",
+    }
+)
+
+RELEASE_FIELD_NAME_VALUE = re.compile(
+    r"(?i)^(?:[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*)?[_-]?(?:field|name|value|token|key|secret|password|cookie)$"
+)
+RELEASE_TEST_CANARY = re.compile(
+    r"(?i)(?:^|[_\-.])(?:canary|placeholder|redacted|masked|dummy|fake|fixture|example|sample|test|never|local)(?:$|[_\-.])"
+)
+RELEASE_SEQUENCE_CANARY = re.compile(
+    r"(?i)(?:abcdefgh|12345678|01234567|deadbeef)(?:[a-z0-9_-]*)$"
+)
+
+RELEASE_TEXT_PATTERNS = {
+    "windows_user_path": re.compile(rb"(?i)\b[A-Z]:\\Users\\[^\\\s]+"),
+    "posix_user_path": re.compile(rb"(?i)(?:^|\s)/(?:home|users)/[^/\s]+"),
+    "api_key": re.compile(rb"(?i)\b(?:sk-ant-|sk-proj-|sk-)[A-Za-z0-9_-]{12,}"),
+    "authorization_header": re.compile(
+        rb"(?im)^\s*authorization\s*:\s*(?:bearer|basic)\s+(?P<value>[^\s]+)"
+    ),
+    "credential_field": re.compile(
+        rb"(?im)(?:^|[,{;\s])[\"']?(?:x[_-]?)?"
+        rb"(?P<key>api[_-]?key|anthropic_api_key|openai_api_key|password|passwd|secret|"
+        rb"access[_-]?token|refresh[_-]?token|session[_-]?(?:cookie|token)|token|cookie)"
+        rb"[\"']?\s*[:=]\s*[\"']?(?P<value>[^\s,;}\"']+)"
+    ),
+    "private_ipv4": re.compile(
+        rb"(?<!\d)(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|"
+        rb"172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(?!\d)"
+    ),
+    "mac_address": re.compile(
+        rb"(?i)(?<![0-9a-f])(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}(?![0-9a-f])"
+    ),
+    "sensitive_identity_field": re.compile(
+        rb"(?i)[\"']?(?:serial_number|license_key|machine_name|owner_name|user_name|username)"
+        rb"[\"']?\s*[:=]\s*[\"']?(?P<value>[^\s,}\"']+)"
+    ),
+}
+
+RELEASE_FILENAME_PATTERNS = {
+    "filename_user_path": re.compile(
+        r"(?i)(?:^|/)(?:[a-z]:/)?(?:users|home)/[^/]+(?:/|$)"
+    ),
+    "filename_serial_number": re.compile(
+        r"(?i)(?:^|/|[-_.])(?:serial(?:[-_.]?number)?|sn)[-_.][a-z0-9]{6,}(?:[-_.]|$)"
+    ),
+    "filename_authorization": re.compile(
+        r"(?i)(?:^|/|[-_.])(?:api[-_]?key|auth(?:orization)?[-_]?(?:key|token)|"
+        r"access[-_]?token|refresh[-_]?token|bearer|secret|password|cookie|license[-_]?key)"
+        r"[-_.][a-z0-9][a-z0-9._-]{7,}(?:[-_.]|$)|"
+        r"(?:^|/|[-_.])sk-(?:ant-|proj-)?[a-z0-9_-]{12,}(?:[-_.]|$)"
+    ),
+}
+
 
 class GovernanceError(RuntimeError):
     """Raised when governance inputs are missing or contradictory."""
@@ -365,6 +500,148 @@ def scan_privacy_files(values: Iterable[str]) -> list[dict[str, int | str]]:
     return findings
 
 
+def _release_value_is_placeholder(value: str, *, allow_short: bool = False) -> bool:
+    normalized = value.strip().strip("\"'").strip().casefold()
+    if normalized in RELEASE_PLACEHOLDER_VALUES:
+        return True
+    if not allow_short and len(normalized) < 8:
+        return True
+    if any(character in normalized for character in "\\()[]{}|?*+="):
+        return True
+    if normalized.endswith(("-", "_", ".", ":")):
+        return True
+    if re.fullmatch(r"[A-Z][A-Z0-9_]*", value.strip().strip("\"'")):
+        return True
+    if normalized.startswith("<") and normalized.endswith(">"):
+        return True
+    if re.fullmatch(r"[*#xX_-]{3,}", normalized):
+        return True
+    if RELEASE_TEST_CANARY.search(normalized):
+        return True
+    if RELEASE_SEQUENCE_CANARY.search(normalized):
+        return True
+    return bool(RELEASE_FIELD_NAME_VALUE.fullmatch(normalized))
+
+
+def _release_filename_findings(relative: str) -> list[dict[str, int | str]]:
+    findings: list[dict[str, int | str]] = []
+    normalized = relative.replace("\\", "/")
+    for category, pattern in RELEASE_FILENAME_PATTERNS.items():
+        match = pattern.search(normalized)
+        if match:
+            candidate = match.group(0).strip("/._-")
+            if category == "filename_user_path":
+                username = normalized.strip("/").split("/")[-2]
+                if _release_value_is_placeholder(username, allow_short=True):
+                    continue
+            if category == "filename_authorization" and _release_value_is_placeholder(candidate):
+                continue
+            findings.append({"file": relative, "line": 0, "category": category})
+    return findings
+
+
+def _release_line_number(data: bytes, offset: int) -> int:
+    return data.count(b"\n", 0, offset) + 1
+
+
+def _release_candidate(match: re.Match[bytes], group: str | None = None) -> str:
+    value = match.group(group) if group else match.group(0)
+    return value.decode("ascii", errors="ignore")
+
+
+def release_privacy_findings_for_bytes(relative: str, data: bytes) -> list[dict[str, int | str]]:
+    """Scan one release-tree path without decoding its bytes as UTF-8."""
+    _validate_relative(relative)
+    findings = _release_filename_findings(relative)
+    suffix = PurePosixPath(relative).suffix.casefold()
+    is_binary = suffix in RELEASE_BINARY_SUFFIXES or b"\0" in data[:8192]
+
+    # Both branches intentionally scan bytes. Binary files are never sent to a
+    # UTF-8 decoder; ASCII credential material remains discoverable in them.
+    payload = bytes(data) if is_binary else data
+    for category, pattern in RELEASE_TEXT_PATTERNS.items():
+        for match in pattern.finditer(payload):
+            captured = None
+            if "value" in pattern.groupindex:
+                captured = _release_candidate(match, "value")
+            elif category == "api_key":
+                captured = _release_candidate(match)
+            elif category in {"private_ipv4", "mac_address"}:
+                if payload[match.end() : match.end() + 2] == b"\\n":
+                    continue
+                captured = _release_candidate(match)
+            if captured is not None and _release_value_is_placeholder(captured):
+                continue
+            findings.append(
+                {
+                    "file": relative,
+                    "line": _release_line_number(data, match.start()),
+                    "category": category,
+                }
+            )
+    return findings
+
+
+def _validate_git_ref(value: str, label: str) -> None:
+    if not value or value.startswith("-") or not re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._/@+~-]*", value
+    ):
+        raise GovernanceError(f"invalid Git {label} ref")
+
+
+def release_changed_paths(base: str = "main", head: str = "HEAD") -> list[str]:
+    """Return exactly the add/copy/modify/rename paths in base...head."""
+    _validate_git_ref(base, "base")
+    _validate_git_ref(head, "head")
+    completed = subprocess.run(
+        [
+            "git",
+            "-c",
+            "core.quotepath=false",
+            "diff",
+            "--name-only",
+            "--diff-filter=ACMR",
+            "--no-ext-diff",
+            "--relative",
+            "-z",
+            f"{base}...{head}",
+            "--",
+        ],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if completed.returncode:
+        message = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise GovernanceError(message or "Git diff failed")
+    try:
+        return [
+            value.decode("utf-8", errors="strict").replace("\\", "/")
+            for value in completed.stdout.split(b"\0")
+            if value
+        ]
+    except UnicodeDecodeError as exc:
+        raise GovernanceError("Git diff returned a non-UTF-8 path") from exc
+
+
+def scan_release_privacy(base: str = "main", head: str = "HEAD") -> list[dict[str, int | str]]:
+    """Scan only the exact tracked file set changed by a PR relative to main."""
+    findings: list[dict[str, int | str]] = []
+    for relative in release_changed_paths(base, head):
+        _validate_relative(relative)
+        target = ROOT / PurePosixPath(relative)
+        if target.is_symlink():
+            raise GovernanceError(f"release privacy target is a reparse point: {relative}")
+        resolved = target.resolve(strict=True)
+        if not resolved.is_relative_to(ROOT) or not resolved.is_file():
+            raise GovernanceError(f"release privacy target must be a repository file: {relative}")
+        findings.extend(release_privacy_findings_for_bytes(relative, resolved.read_bytes()))
+    return sorted(
+        findings,
+        key=lambda item: (str(item["file"]), int(item["line"]), str(item["category"])),
+    )
+
+
 def should_delete(path: str, retention: dict | None = None) -> bool:
     retention = retention or _load_json(RETENTION)
     keep_exact = set(retention.get("keep_exact", []))
@@ -465,6 +742,12 @@ def build_parser() -> argparse.ArgumentParser:
         "privacy-scan", help="fail closed on forbidden external-context data"
     )
     privacy_parser.add_argument("--files", nargs="+", required=True)
+    release_privacy_parser = subparsers.add_parser(
+        "release-privacy-scan",
+        help="scan the exact PR file set relative to a Git base ref",
+    )
+    release_privacy_parser.add_argument("--base", default="main")
+    release_privacy_parser.add_argument("--head", default="HEAD")
     cleanup_parser = subparsers.add_parser(
         "cleanup-plan", help="list or apply tracked retention-policy candidates"
     )
@@ -502,6 +785,11 @@ def main(argv: list[str] | None = None) -> int:
                     indent=2,
                 )
             )
+            if findings:
+                return 3
+        elif args.command == "release-privacy-scan":
+            findings = scan_release_privacy(args.base, args.head)
+            print(json.dumps(findings, ensure_ascii=False, indent=2))
             if findings:
                 return 3
         elif args.command == "cleanup-plan":

@@ -90,6 +90,61 @@ class NanaContextTests(unittest.TestCase):
         ):
             self.assertNotIn(secret, findings)
 
+    def test_release_privacy_scan_reports_real_credentials_without_values(self) -> None:
+        secret = "".join(chr(code) for code in (101, 121, 74, 104, 98, 71, 99, 105))
+        secret += ".s3cr3t-value"
+        findings = nana_context.release_privacy_findings_for_bytes(
+            "src/auth_token_2f4e8a91.bin",
+            f"prefix\nAuthorization: Bearer {secret}\n".encode("ascii"),
+        )
+        categories = {str(item["category"]) for item in findings}
+        self.assertEqual(categories, {"filename_authorization", "authorization_header"})
+        self.assertNotIn(secret, json.dumps(findings))
+
+    def test_release_privacy_scan_does_not_report_field_names(self) -> None:
+        data = (
+            b"TOKEN_FIELD = TOKEN_VALUE\n"
+            b"Authorization: Bearer AUTH_TOKEN\n"
+            b"serial_number = SERIAL_NUMBER_FIELD\n"
+            b"license_key = LICENSE_KEY_VALUE\n"
+        )
+        self.assertEqual(
+            nana_context.release_privacy_findings_for_bytes("src/fields.py", data), []
+        )
+
+    def test_release_privacy_scan_recognizes_placeholders_and_test_canaries(self) -> None:
+        data = (
+            b"token=<redacted>\n"
+            b"password=none\n"
+            b"Authorization: Bearer TEST_CANARY\n"
+            b"secret=NANA_RELEASE_CREDENTIAL_CANARY_DO_NOT_PACKAGE\n"
+        )
+        self.assertEqual(
+            nana_context.release_privacy_findings_for_bytes("tests/fixtures.txt", data), []
+        )
+
+    def test_release_privacy_scan_scans_binary_bytes_without_utf8_decoding(self) -> None:
+        secret = b"correct-horse-battery-staple"
+        data = b"\x00\xff\x80\napi_key=" + secret + b"\x00"
+        findings = nana_context.release_privacy_findings_for_bytes("assets/payload.bin", data)
+        self.assertEqual({str(item["category"]) for item in findings}, {"credential_field"})
+        self.assertNotIn(secret.decode("ascii"), json.dumps(findings))
+
+    def test_release_privacy_scan_checks_sensitive_filenames(self) -> None:
+        findings = nana_context.release_privacy_findings_for_bytes(
+            "home/alice/serial_number_ABC12345.txt", b"safe\n"
+        )
+        self.assertEqual(
+            {str(item["category"]) for item in findings},
+            {"filename_user_path", "filename_serial_number"},
+        )
+        self.assertEqual(
+            nana_context.release_privacy_findings_for_bytes(
+                "home/<redacted>/safe.txt", b"safe\n"
+            ),
+            [],
+        )
+
     def test_cleanup_plan_respects_keep_set_and_legacy_gate(self) -> None:
         candidates = nana_context.cleanup_candidates()
         retention = json.loads(
