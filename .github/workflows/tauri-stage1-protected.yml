@@ -39,9 +39,16 @@ jobs:
         run: |
           python -c "import struct, sys; assert sys.version_info[:3] == (3, 12, 10); assert struct.calcsize('P') * 8 == 64"
 
-      - name: Scan PR release privacy
+      - name: Scan release privacy
         shell: pwsh
-        run: python scripts/nana_context.py release-privacy-scan --base main --head HEAD
+        env:
+          NANA_RELEASE_PRIVACY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          $base = $env:NANA_RELEASE_PRIVACY_BASE
+          if ([string]::IsNullOrWhiteSpace($base) -or $base -match '^0+$') {
+            $base = 'HEAD~1'
+          }
+          python scripts/nana_context.py release-privacy-scan --base $base --head HEAD
 
       - name: Set up Node 24.15.0
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e

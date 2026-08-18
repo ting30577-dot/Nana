@@ -50,7 +50,12 @@ class TauriProtectedCITests(unittest.TestCase):
 
     def test_release_privacy_scan_runs_against_the_pr_file_set(self) -> None:
         self.assertIn(
-            "python scripts/nana_context.py release-privacy-scan --base main --head HEAD",
+            "github.event.pull_request.base.sha || github.event.before",
+            self.workflow,
+        )
+        self.assertIn("$base = 'HEAD~1'", self.workflow)
+        self.assertIn(
+            "python scripts/nana_context.py release-privacy-scan --base $base --head HEAD",
             self.workflow,
         )
 
