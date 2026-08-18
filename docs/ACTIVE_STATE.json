@@ -11,11 +11,13 @@
   "active_product_stage": {
     "id": "post-d3-tauri-stage-1",
     "name": "minimal static Windows shell spike",
-    "status": "local_validation_passed_protected_gate_pending",
+    "status": "product_owner_accepted_protected_ci_pending",
+    "product_owner_decision": "accept_static_shell_without_product_migration",
+    "product_owner_accepted_on": "2026-08-18",
     "product_migration_authorized": false,
     "contract": "docs/tauri_stage1_static_shell_20260817.md",
     "trust_boundary": "docs/tauri_trust_boundary_contract.md",
-    "worktree_expectation": "uncommitted stage-1 files may be present and must be preserved"
+    "worktree_expectation": "clean committed Stage-1 baseline; generated outputs are disposable"
   },
   "active_governance_task": {
     "id": "governance-context-review-cleanup",
@@ -53,12 +55,12 @@
     }
   },
   "next_gate": {
-    "id": "tauri-stage-1-protected-gate-acceptance",
+    "id": "tauri-stage-1-protected-ci-activation",
     "entry_conditions": [
-      "the stage-1 change set is committed on top of governance baseline 41d0fef",
-      "protected CI supplies the reviewed gate-script SHA-256 rather than deriving trust from the worktree",
-      "the protected Tauri spike gate passes from a clean checkout",
-      "the product owner accepts the static-shell result without authorizing product migration"
+      "the Stage-1 protected workflow is committed and pushed",
+      "the GitHub repository variable NANA_TAURI_STAGE1_GATE_SHA256 equals the independently reviewed gate-script SHA-256",
+      "the Tauri Stage 1 protected gate is required for main",
+      "the protected job passes from a clean GitHub-hosted Windows checkout"
     ],
     "forbidden_claims": [
       "Tauri product migration is authorized",
@@ -74,7 +76,8 @@
     "docs/tauri_spike_entry_decision_20260817.md",
     "docs/tauri_stage1_static_shell_20260817.md",
     "docs/tauri_trust_boundary_contract.md",
-    "config/tauri-stage1-worktree-allowlist.json"
+    "config/tauri-stage1-worktree-allowlist.json",
+    ".github/workflows/tauri-stage1-protected.yml"
   ],
   "non_authoritative_sources": [
     "AI review packets and responses",

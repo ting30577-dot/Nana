@@ -23,8 +23,8 @@
         "docs/tauri_stage1_static_shell_20260817.md",
         "docs/tauri_trust_boundary_contract.md"
       ],
-      "source_roots": ["src-tauri", "nana_web", "scripts/check_tauri_spike_gate.ps1"],
-      "tests": ["tests/test_tauri_spike_gate.py", "tests/test_tauri_static_shell.py"],
+      "source_roots": ["src-tauri", "nana_web", "scripts/check_tauri_spike_gate.ps1", ".github/workflows/tauri-stage1-protected.yml"],
+      "tests": ["tests/test_tauri_spike_gate.py", "tests/test_tauri_static_shell.py", "tests/test_tauri_protected_ci.py"],
       "default_review": "R2"
     },
     "web-ui": {
