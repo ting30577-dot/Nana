@@ -28,10 +28,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Python 3.12.13
+      - name: Set up Python 3.12.10 x64
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
-          python-version: 3.12.13
+          python-version: 3.12.10
+          architecture: x64
+
+      - name: Verify the pinned Python runtime
+        shell: pwsh
+        run: |
+          python -c "import struct, sys; assert sys.version_info[:3] == (3, 12, 10); assert struct.calcsize('P') * 8 == 64"
 
       - name: Scan PR release privacy
         shell: pwsh

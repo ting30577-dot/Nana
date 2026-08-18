@@ -56,7 +56,10 @@ class TauriProtectedCITests(unittest.TestCase):
 
     def test_ci_toolchain_and_security_auditor_are_version_pinned(self) -> None:
         for expected in (
-            "python-version: 3.12.13",
+            "python-version: 3.12.10",
+            "architecture: x64",
+            "sys.version_info[:3] == (3, 12, 10)",
+            "struct.calcsize('P') * 8 == 64",
             "node-version: 24.15.0",
             "npm@11.12.1",
             "1.97.1-x86_64-pc-windows-msvc",
