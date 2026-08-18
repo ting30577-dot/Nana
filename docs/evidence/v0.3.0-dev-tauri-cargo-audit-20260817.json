@@ -1,0 +1,17 @@
+{
+  "schema": "nana.tauri.cargo_audit_evidence.v1",
+  "date": "2026-08-17",
+  "tool": "cargo-audit 0.22.2",
+  "command": "cd src-tauri; cargo audit --no-fetch",
+  "status": "PASS",
+  "tool_installed": true,
+  "exit_code": 0,
+  "vulnerabilities": 0,
+  "advisory_database": {
+    "advisory-count": 1216,
+    "last-commit": null,
+    "last-updated": null
+  },
+  "reason": null,
+  "hard_gate": "PASS"
+}

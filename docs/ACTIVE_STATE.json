@@ -53,13 +53,12 @@
     }
   },
   "next_gate": {
-    "id": "tauri-stage-1-revalidation-after-governance-cleanup",
+    "id": "tauri-stage-1-protected-gate-acceptance",
     "entry_conditions": [
-      "governance changes are reviewed and committed so the stage allowlist sees a clean baseline",
-      "stage-1 manifest is refreshed only for its own existing worktree scope",
-      "focused Tauri tests and frontend checks pass",
-      "full Python regression has no unexplained failure",
-      "the protected Tauri spike gate runs with its expected gate-script digest"
+      "the stage-1 change set is committed on top of governance baseline 41d0fef",
+      "protected CI supplies the reviewed gate-script SHA-256 rather than deriving trust from the worktree",
+      "the protected Tauri spike gate passes from a clean checkout",
+      "the product owner accepts the static-shell result without authorizing product migration"
     ],
     "forbidden_claims": [
       "Tauri product migration is authorized",
