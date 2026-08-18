@@ -1,0 +1,74 @@
+{
+  "schema": "nana.context_routes.v1",
+  "always_read": [
+    "docs/PROJECT_KERNEL.md",
+    "docs/ACTIVE_STATE.json"
+  ],
+  "routes": {
+    "governance": {
+      "description": "Project direction, context, review, retention, handoff, and cleanup",
+      "documents": [
+        "AGENTS.md",
+        "docs/DOCUMENT_RETENTION.md",
+        "config/document-retention.json"
+      ],
+      "source_roots": ["scripts/nana_context.py", ".agents/skills/nana-project-workflow"],
+      "tests": ["tests/test_nana_context.py"],
+      "default_review": "R1"
+    },
+    "tauri-shell": {
+      "description": "Post-D3 Tauri shell spikes and Windows desktop lifecycle",
+      "documents": [
+        "docs/tauri_spike_entry_decision_20260817.md",
+        "docs/tauri_stage1_static_shell_20260817.md",
+        "docs/tauri_trust_boundary_contract.md"
+      ],
+      "source_roots": ["src-tauri", "nana_web", "scripts/check_tauri_spike_gate.ps1"],
+      "tests": ["tests/test_tauri_spike_gate.py", "tests/test_tauri_static_shell.py"],
+      "default_review": "R2"
+    },
+    "web-ui": {
+      "description": "React Cockpit and Research Studio behavior",
+      "documents": [
+        "obsidian_export/Nana_研究系统_vNext/03_用户旅程与功能系统.md",
+        "obsidian_export/Nana_研究系统_vNext/04_界面重构与交互规范.md"
+      ],
+      "source_roots": ["nana_web/src"],
+      "tests": ["nana_web/src/**/*.test.ts", "nana_web/src/**/*.test.tsx", "nana_web/tests/e2e"],
+      "default_review": "R1"
+    },
+    "runtime": {
+      "description": "Python runtime, canonical data, commands, actions, events, approvals, and receipts",
+      "documents": [
+        "obsidian_export/Nana_研究系统_vNext/05_技术架构与数据契约.md",
+        "obsidian_export/Nana_研究系统_vNext/06_AI自治_安全与隐私.md",
+        "docs/d2_runtime_handoff.md"
+      ],
+      "source_roots": ["nana_sidecar"],
+      "tests": ["tests/test_d1_*.py", "tests/test_d2_*.py", "tests/test_d3_*.py"],
+      "default_review": "R1"
+    },
+    "legacy-migration": {
+      "description": "Read-only v0.2 export, migration, rollback, and retirement",
+      "documents": [
+        "docs/baselines/v0.2.0-alpha/README.md",
+        "docs/baselines/v0.2.0-alpha/reuse-inventory.md",
+        "obsidian_export/Nana_研究系统_vNext/08_迁移_备份_发布与恢复.md"
+      ],
+      "source_roots": ["db/legacy_export.py", "nana_core/research/legacy_migration.py", "ui/legacy_migration_page.py"],
+      "tests": ["tests/test_legacy_export.py", "tests/test_legacy_migration_page.py", "tests/test_runtime_data_migration.py"],
+      "default_review": "R2"
+    },
+    "release": {
+      "description": "Release gates, packaging, security, migration, and recovery",
+      "documents": [
+        "docs/CURRENT_D3_AUTHORITY.md",
+        "obsidian_export/Nana_研究系统_vNext/07_版本路线图与验收门槛.md",
+        "obsidian_export/Nana_研究系统_vNext/08_迁移_备份_发布与恢复.md"
+      ],
+      "source_roots": ["config", "scripts", "src-tauri"],
+      "tests": ["tests/test_release_package_boundary.py", "tests/test_evidence_manifests.py"],
+      "default_review": "R3"
+    }
+  }
+}

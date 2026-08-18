@@ -1,0 +1,6 @@
+interface:
+  display_name: "Nana 项目工作流"
+  short_description: "稳定接手、执行、审查、清理和交接 Nana 项目任务"
+  default_prompt: "Use $nana-project-workflow to take over the current Nana task without scanning the whole repository."
+policy:
+  allow_implicit_invocation: true

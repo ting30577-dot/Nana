@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -1240,18 +1241,24 @@ class DevFixtureContractTests(unittest.TestCase):
 
 
 class D0EvidenceManifestTests(unittest.TestCase):
-    def test_manifest_files_and_digest_match(self) -> None:
-        manifest_path = (
-            ROOT / "docs" / "evidence" / "v0.3.0-dev-d0-manifest.txt"
-        )
-        digest_path = manifest_path.with_suffix(".sha256")
-        normalized_lines = manifest_path.read_text(encoding="utf-8").splitlines()
+    def test_frozen_tag_retains_the_d0_manifest_and_digest(self) -> None:
+        baseline_ref = "refs/tags/v0.3.0-dev-d3-final"
+
+        def baseline_blob(relative: str) -> bytes:
+            return subprocess.run(
+                ["git", "show", f"{baseline_ref}:{relative}"],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+            ).stdout
+
+        manifest_relative = "docs/evidence/v0.3.0-dev-d0-manifest.txt"
+        digest_relative = "docs/evidence/v0.3.0-dev-d0-manifest.sha256"
+        normalized_lines = baseline_blob(manifest_relative).decode("utf-8").splitlines()
         for line in normalized_lines:
             relative_path, expected = line.split("\t", maxsplit=1)
-            target = (ROOT / relative_path).resolve()
-            self.assertTrue(target.is_relative_to(ROOT))
             self.assertEqual(
-                hashlib.sha256(target.read_bytes()).hexdigest(),
+                hashlib.sha256(baseline_blob(relative_path)).hexdigest(),
                 expected,
                 relative_path,
             )
@@ -1260,7 +1267,7 @@ class D0EvidenceManifestTests(unittest.TestCase):
         ).hexdigest()
         self.assertEqual(
             actual_manifest_digest,
-            digest_path.read_text(encoding="ascii").strip(),
+            baseline_blob(digest_relative).decode("ascii").strip(),
         )
 
 

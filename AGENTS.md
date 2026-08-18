@@ -1,3 +1,43 @@
+# Nana 项目接手协议
+
+本仓库中的任何规划、实现、审查、修复、发布、清理或交接任务都必须使用
+`.agents/skills/nana-project-workflow/SKILL.md`。不要用“先浏览整个仓库或整个
+Obsidian Vault”作为接手方式。
+
+## 每次任务的固定启动顺序
+
+1. 运行 `python scripts/nana_context.py check`；失败时先处理权威冲突，不继续扩展范围。
+2. 只读取 `docs/PROJECT_KERNEL.md` 和 `docs/ACTIVE_STATE.json`。
+3. 根据任务选择 `config/context-routes.json` 中的一个 route，运行
+   `python scripts/nana_context.py bootstrap --route <route>`，再读取输出列出的文件。
+4. 明确本次目标、允许修改范围、禁止范围、验收证据和审查等级后再动手。
+
+只有在 route 仍不能回答一个具体问题时才扩大读取范围，并在工作说明中写明缺少的
+信息。不得默认递归读取 `docs/`、`obsidian_export/`、整个仓库或外部 Vault。
+
+## 单一事实源
+
+- `docs/PROJECT_KERNEL.md`：稳定产品使命、核心路线和版本边界。
+- `docs/ACTIVE_STATE.json`：当前阶段、当前任务、下一门槛和权威输入。
+- 当前阶段 contract / ADR：局部设计决策。
+- 代码与可执行测试：实现事实。
+- Obsidian：面向用户的思考与阅读视图，不是工程执行状态源。
+- Git tag/history：历史档案；不要在活动树中建立庞大的历史 `archive/`。
+
+冲突时遵守 `PROJECT_KERNEL.md` 中的 authority order。完成任务时只在阶段、门槛或
+权威输入确实变化时更新 `ACTIVE_STATE.json`；不要新建另一份“当前状态”文档。
+
+## 审查与文档预算
+
+- 按 `docs/DOCUMENT_RETENTION.md` 选择 R0/R1/R2/R3，默认 R1。
+- 每项变更最多一轮主审查和一轮定向复审；持续两轮的 P0/P1 交给产品所有者决策。
+- 保留最终决定、未解风险和回归测试；不保留完整 AI 对话、重复 packet/response、
+  每轮 scan 或可再生成的测试报告。
+- 仅里程碑、RC、稳定版或产品边界变化允许全仓审查。
+- 调用外部模型前必须使用最小脱敏上下文；不得发送凭据、授权信息、硬件序列号、
+  软件授权信息、机主/账户名、含用户名路径、内网 IP、MAC 地址或未经明确批准的
+  用户研究内容。硬件只允许型号，软件只允许版本号。
+
 # 通用协作代理规则
 
 ## 工作分工

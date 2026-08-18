@@ -1,0 +1,103 @@
+{
+  "schema": "nana.active_state.v1",
+  "updated_on": "2026-08-18",
+  "product_version": "v0.3.0-dev",
+  "stable_baseline": {
+    "stage": "D3",
+    "status": "acceptance_complete_release_baseline_frozen",
+    "ref": "refs/tags/v0.3.0-dev-d3-final",
+    "authority": "docs/CURRENT_D3_AUTHORITY.md"
+  },
+  "active_product_stage": {
+    "id": "post-d3-tauri-stage-1",
+    "name": "minimal static Windows shell spike",
+    "status": "local_validation_passed_protected_gate_pending",
+    "product_migration_authorized": false,
+    "contract": "docs/tauri_stage1_static_shell_20260817.md",
+    "trust_boundary": "docs/tauri_trust_boundary_contract.md",
+    "worktree_expectation": "uncommitted stage-1 files may be present and must be preserved"
+  },
+  "active_governance_task": {
+    "id": "governance-context-review-cleanup",
+    "status": "completed",
+    "completed_on": "2026-08-18",
+    "goal": "make every new task inherit one route, one current state, proportional review, and bounded documentation",
+    "allowed_scope": [
+      "AGENTS.md",
+      ".agents/skills/nana-project-workflow/",
+      "config/context-routes.json",
+      "config/document-retention.json",
+      "docs/PROJECT_KERNEL.md",
+      "docs/ACTIVE_STATE.json",
+      "docs/DOCUMENT_RETENTION.md",
+      "README.md",
+      "scripts/nana_context.py",
+      "tests/test_nana_context.py",
+      "historical documentation and regenerated build outputs selected by the retention policy"
+    ],
+    "result": {
+      "tracked_history_files_removed": 262,
+      "additional_superseded_overview_files_removed": 2,
+      "regenerable_bytes_removed": 8117789710,
+      "obsidian_files_synced": 13,
+      "validation": {
+        "python_unittest": "472/472 passed",
+        "governance_unittest": "10/10 passed",
+        "vitest": "67/67 passed",
+        "projection_self_test": "passed",
+        "typescript_no_emit": "passed",
+        "vite_build": "passed",
+        "cargo_fmt_clippy_test_check_build": "passed"
+      },
+      "known_environment_note": "frozen PySide6 shutdown ResourceWarning remains"
+    }
+  },
+  "next_gate": {
+    "id": "tauri-stage-1-revalidation-after-governance-cleanup",
+    "entry_conditions": [
+      "governance changes are reviewed and committed so the stage allowlist sees a clean baseline",
+      "stage-1 manifest is refreshed only for its own existing worktree scope",
+      "focused Tauri tests and frontend checks pass",
+      "full Python regression has no unexplained failure",
+      "the protected Tauri spike gate runs with its expected gate-script digest"
+    ],
+    "forbidden_claims": [
+      "Tauri product migration is authorized",
+      "a signed installer exists",
+      "the Python sidecar lifecycle is implemented in Tauri",
+      "v0.2.0 may be deleted"
+    ]
+  },
+  "authoritative_inputs": [
+    "docs/PROJECT_KERNEL.md",
+    "docs/ACTIVE_STATE.json",
+    "docs/CURRENT_D3_AUTHORITY.md",
+    "docs/tauri_spike_entry_decision_20260817.md",
+    "docs/tauri_stage1_static_shell_20260817.md",
+    "docs/tauri_trust_boundary_contract.md",
+    "config/tauri-stage1-worktree-allowlist.json"
+  ],
+  "non_authoritative_sources": [
+    "AI review packets and responses",
+    "scan findings superseded by accepted outcomes",
+    "root handoff snapshots",
+    "obsolete Obsidian export",
+    "generated build directories"
+  ],
+  "privacy": {
+    "external_context_default": "sanitized_minimum",
+    "forbidden": [
+      "credentials or authorization material",
+      "hardware serial numbers",
+      "software license information or keys",
+      "machine or account names",
+      "usernames embedded in filesystem paths",
+      "private IP or MAC addresses",
+      "raw user research content unless explicitly approved"
+    ],
+    "allowed_environment_metadata": [
+      "hardware model",
+      "software version"
+    ]
+  }
+}

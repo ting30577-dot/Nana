@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FINAL_MANIFEST = ROOT / "docs/evidence/v0.3.0-dev-d3-final-manifest.txt"
 AUTHORITY = ROOT / "docs/CURRENT_D3_AUTHORITY.md"
 README = ROOT / "README.md"
+ACTIVE_STATE = ROOT / "docs/ACTIVE_STATE.json"
 GATE = ROOT / "docs/evidence/v0.3.0-dev-d3-09-gate-decision.json"
 OBSERVATION = (
     ROOT
@@ -86,6 +87,7 @@ class CurrentEvidenceManifestTests(unittest.TestCase):
     def test_current_authority_readme_and_machine_gate_agree(self) -> None:
         authority = AUTHORITY.read_text(encoding="utf-8")
         readme = README.read_text(encoding="utf-8")
+        active_state = json.loads(ACTIVE_STATE.read_text(encoding="utf-8"))
         gate = json.loads(GATE.read_text(encoding="utf-8"))
         marker_match = re.search(
             r"<!-- nana-current-authority\s+(.*?)-->", authority, re.DOTALL
@@ -102,13 +104,18 @@ class CurrentEvidenceManifestTests(unittest.TestCase):
             marker["release_baseline_frozen"],
             str(gate["release_baseline_frozen"]).lower(),
         )
-        self.assertIn(f"`{gate['status']}`", readme)
-        self.assertIn(f"`d3_complete={str(gate['d3_complete']).lower()}`", readme)
-        self.assertIn(
-            "`release_baseline_frozen="
-            f"{str(gate['release_baseline_frozen']).lower()}`",
-            readme,
+        self.assertEqual(active_state["stable_baseline"]["status"], gate["status"])
+        self.assertEqual(
+            active_state["stable_baseline"]["authority"],
+            "docs/CURRENT_D3_AUTHORITY.md",
         )
+        self.assertFalse(
+            active_state["active_product_stage"]["product_migration_authorized"]
+        )
+        self.assertIn("docs/PROJECT_KERNEL.md", readme)
+        self.assertIn("docs/ACTIVE_STATE.json", readme)
+        self.assertIn("Tauri product migration is", readme)
+        self.assertIn("**not** authorized", readme)
         self.assertEqual(
             gate["status"], "acceptance_complete_release_baseline_frozen"
         )
@@ -137,20 +144,21 @@ class CurrentEvidenceManifestTests(unittest.TestCase):
         )
         self.assertIn("verdict: d3-acceptance-complete-release-baseline-frozen", audit)
 
-    def test_historical_acceptance_records_are_explicitly_noncurrent(self) -> None:
+    def test_historical_acceptance_records_live_in_the_frozen_tag(self) -> None:
         historical = (
-            ROOT / "docs/d3_completion_audit.md",
-            ROOT / "docs/d3_09_codex_final_acceptance_20260813.md",
-            ROOT / "docs/evidence/v0.3.0-dev-d3-09-completion.md",
-            ROOT / "docs/evidence/v0.3.0-dev-d3-authority-sync-summary.md",
+            "docs/d3_completion_audit.md",
+            "docs/d3_09_codex_final_acceptance_20260813.md",
+            "docs/evidence/v0.3.0-dev-d3-09-completion.md",
+            "docs/evidence/v0.3.0-dev-d3-authority-sync-summary.md",
         )
-        for path in historical:
-            with self.subTest(path=path.name):
-                first_block = "\n".join(
-                    path.read_text(encoding="utf-8").splitlines()[:12]
-                ).casefold()
-                self.assertRegex(first_block, r"historical|superseded")
-                self.assertRegex(first_block, r"current authority|current status")
+        active_state = json.loads(ACTIVE_STATE.read_text(encoding="utf-8"))
+        self.assertIn(
+            "AI review packets and responses",
+            active_state["non_authoritative_sources"],
+        )
+        for relative in historical:
+            with self.subTest(path=relative):
+                self.assertTrue(baseline_blob(relative))
 
     def test_current_verification_numbers_are_consistent(self) -> None:
         gate = json.loads(GATE.read_text(encoding="utf-8"))

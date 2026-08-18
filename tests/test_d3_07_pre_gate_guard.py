@@ -1,8 +1,7 @@
-"""Executable governance and residual D3-07 safety guards."""
+"""Residual runtime safety guards retained after D3 governance cleanup."""
 
 from __future__ import annotations
 
-import json
 import unittest
 from pathlib import Path
 
@@ -15,22 +14,6 @@ class D307PreGateGuardTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.root = Path(__file__).resolve().parents[1]
-
-    def test_machine_gate_records_codex_only_implementation_exit(self) -> None:
-        gate_path = self.root / "docs" / "evidence" / "v0.3.0-dev-d3-07-gate-decision.json"
-        gate = json.loads(gate_path.read_text(encoding="utf-8"))
-        self.assertEqual(gate["stage"], "D3-07")
-        self.assertEqual(gate["substage"], "07-00")
-        self.assertEqual(gate["joint_status"], "unresolved")
-        self.assertEqual(gate["governance"]["mode"], "codex_only")
-        self.assertEqual(gate["governance"]["codex_only_entry_status"], "accepted")
-        self.assertIs(gate["implementation_authorized"], True)
-        self.assertIs(gate["capability_registered"], True)
-        self.assertIs(gate["filesystem_write_authorized"], True)
-        self.assertEqual(gate["codex"]["decision"], "ACCEPT")
-        for record in gate["source_records"]:
-            with self.subTest(record=record):
-                self.assertTrue((self.root / record).is_file())
 
     def test_curated_journey_union_exposes_only_narrow_approval_requests(self) -> None:
         forbidden = {
@@ -68,18 +51,6 @@ class D307PreGateGuardTests(unittest.TestCase):
             execution_enabled=True,
         )
         self.assertIs(handshake.external_effects_enabled, False)
-
-    def test_handoff_records_current_no_claude_continuation_boundary(self) -> None:
-        handoff = (self.root / "D3_HANDOFF_START_HERE.md").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("Snapshot date: 2026-08-10", handoff)
-        self.assertIn("not call, retry, or wait for Claude", handoff)
-        self.assertIn(
-            "docs/evidence/v0.3.0-dev-d3-local-regression-and-manifest-refresh-20260810.md",
-            handoff,
-        )
-        self.assertNotIn("372 full Python tests pass", handoff)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,63 @@
+{
+  "schema": "nana.document_retention.v1",
+  "principle": "keep durable decisions and executable proof; use Git history for superseded discussion",
+  "keep_exact": [
+    "docs/PROJECT_KERNEL.md",
+    "docs/ACTIVE_STATE.json",
+    "docs/CURRENT_D3_AUTHORITY.md",
+    "docs/DOCUMENT_RETENTION.md",
+    "docs/tauri_spike_entry_decision_20260817.md",
+    "docs/tauri_stage1_static_shell_20260817.md",
+    "docs/tauri_trust_boundary_contract.md",
+    "docs/d2_runtime_handoff.md",
+    "docs/evidence/v0.3.0-dev-d3-final-manifest.txt",
+    "docs/evidence/v0.3.0-dev-d3-final-manifest.sha256",
+    "docs/evidence/v0.3.0-dev-d3-09-gate-decision.json",
+    "docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json",
+    "docs/evidence/v0.3.0-dev-d3-baseline-anchor-20260817.json",
+    "docs/evidence/v0.3.0-dev-d3-release-baseline-freeze-20260817.md",
+    "docs/evidence/v0.3.0-dev-d3-security-boundary-repair-20260817.md",
+    "docs/evidence/v0.3.0-dev-runtime-data-migration-20260817.json",
+    "docs/evidence/v0.3.0-dev-tauri-toolchain-20260817.json",
+    "docs/evidence/v0.3.0-dev-tauri-spike-entry-manifest.txt",
+    "docs/evidence/v0.3.0-dev-tauri-spike-entry-manifest.sha256",
+    "docs/evidence/v0.3.0-dev-tauri-stage1-static-shell.json",
+    "docs/evidence/v0.3.0-dev-tauri-cargo-audit-20260817.json",
+    "docs/evidence/v0.3.0-dev-tauri-stage1-static-shell-manifest.txt",
+    "docs/evidence/v0.3.0-dev-tauri-stage1-static-shell-manifest.sha256"
+  ],
+  "keep_prefixes": [
+    "docs/adr/",
+    "docs/baselines/v0.2.0-alpha/",
+    "obsidian_export/Nana_研究系统_vNext/"
+  ],
+  "delete_name_patterns": [
+    "^docs/claude_.*",
+    "^docs/codex_.*",
+    "^docs/d[0-3]_.*",
+    "^docs/evidence/.*",
+    "^docs/convergence_resolution\\.md$",
+    "^docs/(?:project_overview|rebuild_evidence_pack)\\.md$",
+    "^D3_HANDOFF_.*\\.md$",
+    "^obsidian_export/Nana_研究系统/.*"
+  ],
+  "generated_cleanup_roots": [
+    ".codex_staging",
+    "_skill_stage",
+    "build",
+    "dist",
+    "Nana_v0.3.0-dev-D3_package_20260809",
+    "Nana_v0.3.0-dev-D3_package_20260809.zip",
+    "src-tauri/target"
+  ],
+  "never_delete_without_gate": [
+    "main.py",
+    "ui/",
+    "visualizer/",
+    "db/",
+    "algorithms/",
+    "nana_core/research/",
+    "backups/",
+    ".venv/"
+  ]
+}

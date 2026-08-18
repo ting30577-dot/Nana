@@ -1,17 +1,18 @@
 # Nana
 
-> **Current D3 authority:** [`docs/CURRENT_D3_AUTHORITY.md`](docs/CURRENT_D3_AUTHORITY.md).
-> Any conflicting handoff, audit or acceptance document is historical.
+> **Product direction:** [`docs/PROJECT_KERNEL.md`](docs/PROJECT_KERNEL.md)
+> **Current execution state:** [`docs/ACTIVE_STATE.json`](docs/ACTIVE_STATE.json)
+> The accepted D3 baseline remains frozen in
+> [`docs/CURRENT_D3_AUTHORITY.md`](docs/CURRENT_D3_AUTHORITY.md).
 
 Nana is a Windows-first, local-first personal **Research & Engineering OS**. Its
 target is to turn a real research or engineering question into traceable
 evidence, reproducible runs, reusable artifacts, and a user-approved decision.
 
-> Current implementation: legacy `v0.2.0-alpha` plus a technically verified
-> `v0.3.0-dev` React/FastAPI vertical slice.
-> Current D3 acceptance status: `acceptance_complete_release_baseline_frozen`;
-> `d3_complete=true` and `release_baseline_frozen=true`. See the authority and
-> the commit-bound final evidence manifest.
+> Current implementation: a frozen legacy `v0.2.0-alpha`, the accepted
+> `v0.3.0-dev` React/FastAPI D3 vertical slice, and a post-D3 Tauri Stage 1
+> static-shell spike awaiting worktree revalidation. Tauri product migration is
+> **not** authorized.
 
 The present PySide6 application is still runnable and its tests are retained as
 a regression baseline. It is not the target UI or data architecture. New
@@ -52,7 +53,8 @@ derived view of real work, not a separate score-driven product loop.
 - adapters for Git/DVC, MLflow/SwanLab, Jupyter, Obsidian, parsers, model
   providers, and execution backends
 
-The detailed and authoritative rebuild specification is staged in
+The stable mission and engineering authority are the project kernel and active
+state above. The detailed user-facing rebuild specification is mirrored in
 [`obsidian_export/Nana_研究系统_vNext`](obsidian_export/Nana_研究系统_vNext/00_Nana_总览与导航.md).
 It covers product, version-history research, user journeys, UI, architecture,
 security, roadmap, migration, peer review, final audit, and the first
@@ -116,20 +118,35 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_windows.
 ```
 
 The output is `dist\Nana\Nana.exe`. This build path is retained only until the
-new vertical slice and Tauri decision gate are complete.
+Tauri product-migration and old-data recovery gates are complete. Generated
+packages are intentionally not retained in the repository working tree.
+
+### Start a new Nana development task
+
+Do not scan the entire repository or Obsidian Vault. The root `AGENTS.md` and
+project skill require a bounded route:
+
+```powershell
+python .\scripts\nana_context.py check
+python .\scripts\nana_context.py bootstrap --route tauri-shell
+```
+
+Available routes are in `config/context-routes.json`. Documentation and review
+retention rules are in `docs/DOCUMENT_RETENTION.md`.
 
 ## Repository map
 
 ```text
 .
-├── main.py                         # current legacy entry point
+├── main.py                         # frozen legacy entry point/migration fallback
 ├── algorithms/                     # reusable algorithm assets
 ├── db/                             # legacy SQLite implementation
 ├── ui/                             # frozen PySide6 UI
 ├── visualizer/                     # legacy visualizations
 ├── nana_core/ai/                   # model collaboration adapter
-├── tests/                          # current regression baseline
-├── docs/                           # evidence and peer-review working record
+├── src-tauri/                      # currently authorized static shell spike
+├── tests/                          # executable contracts and regression proof
+├── docs/                           # kernel, active state, decisions, minimal evidence
 └── obsidian_export/
     └── Nana_研究系统_vNext/          # authoritative rebuild specification
 ```

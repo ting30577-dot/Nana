@@ -1,7 +1,7 @@
 # v0.2.0-alpha legacy baseline
 
-Status: frozen legacy prototype  
-Baseline commit: `2a313c063d6a21e23eee18162f0db277d301078b`  
+Status: frozen legacy prototype
+Baseline commit: `2a313c063d6a21e23eee18162f0db277d301078b`
 Runtime: Python `3.12.13`
 
 This baseline exists for regression, export, and migration comparison. It is

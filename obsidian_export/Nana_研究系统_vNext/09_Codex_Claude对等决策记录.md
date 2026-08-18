@@ -153,17 +153,19 @@ Claude 中转服务在初稿阶段两次、全部技术条件关闭后又一次�
 
 遵循用户要求：这些信息一旦会改变当期实施路径，先停下并以可选择方案询问。
 
-## 8. 权威工作记录
+## 8. 当前协作与保留规则
 
-仓库中保留：
+Codex 与 Claude 在需要共同决策时地位平等：先读取同一份最小脱敏证据，各自给出
+独立提案，再交换可审查的结论、依据、反例和异议，最后记录共同接受的决定或仍未
+解决的分歧。双方都不能看到或要求对方的隐藏思维过程，也不以模型身份替代证据。
 
-- `docs/rebuild_evidence_pack.md`
-- `docs/codex_independent_proposal.md`
-- `docs/claude_independent_proposal.md`
-- `docs/codex_cross_review_of_claude.md`
-- `docs/claude_cross_review_of_codex.md`
-- `docs/convergence_resolution.md`
-- `docs/claude_final_review_packet_sanitized.md`
+完整 prompt、response、packet、重复 scan 和中转故障记录不再保留在活动树中；
+它们可从历史 Git tag 找回。活动树只保留：
 
-它们是本决策记录的来源，不代表所有内容都进入最终产品规格；冲突时，以本 Vault
-中标记 `confirmed` 的最终文件和 [[10_完整性_可行性_可执行性终审]] 为准。
+- 本页中的持久共同决策；
+- `docs/PROJECT_KERNEL.md` 的稳定产品路线；
+- `docs/ACTIVE_STATE.json` 的当前工程状态；
+- 被接受的 ADR、当前阶段契约、未解重大风险和回归测试。
+
+外部模型只能接收最小脱敏上下文：不得包含密钥或授权数据、序列号、机主/账户名、
+含用户名路径、内网 IP、MAC 地址、软件授权信息或未经明确批准的用户研究内容。

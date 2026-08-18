@@ -1,7 +1,7 @@
 # Legacy SQLite schema inventory
 
-Inventory date: 2026-07-29  
-Source: baseline commit plus the user's current uncommitted tree  
+Inventory date: 2026-07-29
+Source: baseline commit plus the user's current uncommitted tree
 Method: source inspection and existing database/repository regression tests
 
 The default legacy data file is under the operating system's local application
