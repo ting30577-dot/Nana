@@ -11,15 +11,18 @@
   "active_product_stage": {
     "id": "post-d3-tauri-stage-1",
     "name": "minimal static Windows shell spike",
-    "status": "protected_ci_complete_merge_approval_pending",
+    "status": "completed_static_shell_without_product_migration",
     "product_owner_decision": "accept_static_shell_without_product_migration",
     "product_owner_accepted_on": "2026-08-18",
     "protected_ci_completed_on": "2026-08-19",
     "protected_ci_evidence": "github-actions-run-32226061240",
+    "merged_to_main_on": "2026-08-19",
+    "main_merge_commit": "2f32971c1bc0e7f082e6fb6c578ad77aaab42ca9",
+    "main_ci_evidence": "github-actions-run-32233034408",
     "product_migration_authorized": false,
     "contract": "docs/tauri_stage1_static_shell_20260817.md",
     "trust_boundary": "docs/tauri_trust_boundary_contract.md",
-    "worktree_expectation": "clean committed Stage-1 baseline; generated outputs are disposable"
+    "worktree_expectation": "clean merged Stage-1 baseline; generated outputs are disposable"
   },
   "active_governance_task": {
     "id": "governance-context-review-cleanup",
@@ -57,13 +60,14 @@
     }
   },
   "next_gate": {
-    "id": "tauri-stage-1-main-merge",
+    "id": "post-stage1-next-stage-decision",
     "entry_conditions": [
-      "PR #2 retains a successful required Tauri Stage 1 protected gate on its final head",
-      "PR #2 receives the independent approval required by the existing main branch protection, or the product owner separately authorizes the configured administrator bypass",
-      "the accepted Stage-1 candidate is merged to main without authorizing product migration"
+      "the product owner reviews the completed static-shell evidence and chooses the next bounded product stage",
+      "the chosen stage has one contract naming its user outcome, allowed scope, forbidden scope, acceptance evidence, and rollback boundary",
+      "ACTIVE_STATE names the newly authorized stage before implementation begins"
     ],
     "forbidden_claims": [
+      "Tauri Stage 2 is authorized",
       "Tauri product migration is authorized",
       "a signed installer exists",
       "the Python sidecar lifecycle is implemented in Tauri",
