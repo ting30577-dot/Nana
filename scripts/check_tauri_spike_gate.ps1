@@ -118,7 +118,7 @@ if ($frontendPackage.scripts.build -ne 'vite build') {
 }
 $stageManifestPath = Join-Path $RepositoryRoot 'docs\evidence\v0.3.0-dev-tauri-stage1-static-shell-manifest.txt'
 $stageManifestDigestPath = Join-Path $RepositoryRoot 'docs\evidence\v0.3.0-dev-tauri-stage1-static-shell-manifest.sha256'
-$expectedStageManifestSha256 = '85c501e5301e8535fe93e5322346b5dbdaf5852560ed49646d3892b87d680d55'
+$expectedStageManifestSha256 = 'd86ea57f85e4c64ccce17d35c081fb41fb791d836b1ee47a95fb2539233b4fb1'
 $actualStageManifestSha256 = (Get-Content -Raw -LiteralPath $stageManifestDigestPath).Trim().ToLowerInvariant()
 if ($actualStageManifestSha256 -ne $expectedStageManifestSha256) {
     throw 'stage evidence manifest does not match the gate trusted baseline'

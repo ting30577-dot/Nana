@@ -11,6 +11,18 @@ from collections.abc import Iterable, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _evidence_sha256(data: bytes) -> str:
+    """Hash text identically across Git checkouts while preserving binary bytes."""
+    if b"\x00" not in data:
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+        else:
+            data = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+    return hashlib.sha256(data).hexdigest()
+
+
 def _relative_path(path: Path) -> str:
     relative = path.relative_to(ROOT).as_posix()
     if relative in {"", "."} or relative.startswith("../"):
@@ -81,7 +93,7 @@ def recompute_manifest(
         if not target.is_relative_to(ROOT) or not target.is_file():
             raise ValueError(f"manifest target escapes the repository: {relative}")
     normalized = "\n".join(
-        f"{relative}\t{hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()}"
+        f"{relative}\t{_evidence_sha256((ROOT / relative).read_bytes())}"
         for relative in relative_paths
     )
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()

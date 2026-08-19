@@ -9,7 +9,7 @@ import re
 import unittest
 from pathlib import Path
 
-from scripts.refresh_evidence_manifest import recompute_manifest
+from scripts.refresh_evidence_manifest import _evidence_sha256, recompute_manifest
 from scripts.check_tauri_frontend_dist import audit_frontend_dist
 
 
@@ -40,6 +40,13 @@ STAGE_EXCLUDED = (ROOT / "src-tauri/target", ROOT / "src-tauri/gen")
 
 
 class TauriStaticShellTests(unittest.TestCase):
+    def test_evidence_hash_normalizes_text_line_endings_only(self) -> None:
+        expected_text = hashlib.sha256(b"alpha\nbeta\n").hexdigest()
+        self.assertEqual(_evidence_sha256(b"alpha\r\nbeta\r"), expected_text)
+
+        binary = b"alpha\x00\r\nbeta\r"
+        self.assertEqual(_evidence_sha256(binary), hashlib.sha256(binary).hexdigest())
+
     def test_source_root_is_direct_non_reparse_directory(self) -> None:
         self.assertTrue(TAURI.is_dir())
         self.assertFalse(TAURI.is_symlink())
