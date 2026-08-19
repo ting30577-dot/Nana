@@ -1,92 +1,40 @@
 # Nana
 
-> **Product direction:** [`docs/PROJECT_KERNEL.md`](docs/PROJECT_KERNEL.md)
-> **Current execution state:** [`docs/ACTIVE_STATE.json`](docs/ACTIVE_STATE.json)
-> The accepted D3 baseline remains frozen in
-> [`docs/CURRENT_D3_AUTHORITY.md`](docs/CURRENT_D3_AUTHORITY.md).
+Nana 是一个 Windows 优先、本地优先的个人科研与工程工作台。当前仓库版本为
+`v0.3.0-dev`。
 
-Nana is a Windows-first, local-first personal **Research & Engineering OS**. Its
-target is to turn a real research or engineering question into traceable
-evidence, reproducible runs, reusable artifacts, and a user-approved decision.
+- 产品原则：[项目内核](docs/PROJECT_KERNEL.md)
+- 当前工程状态：[活动状态](docs/ACTIVE_STATE.json)
+- 已冻结的 D3 基线：[D3 权威说明](docs/CURRENT_D3_AUTHORITY.md)
 
-> Current implementation: a frozen legacy `v0.2.0-alpha`, the accepted
-> `v0.3.0-dev` React/FastAPI D3 vertical slice, and a post-D3 Tauri Stage 1
-> static-shell spike awaiting worktree revalidation. Tauri product migration is
-> **not** authorized.
+## 当前状态
 
-The present PySide6 application is still runnable and its tests are retained as
-a regression baseline. It is not the target UI or data architecture. New
-product work is frozen on the old Qt/CRUD flow. The dev slice now includes a
-typed browser journey, locked T2 fixture, controlled draft export and Receipt,
-Pause/Resume, failed-to-retry lineage, the Local Web lifecycle/security matrix,
-and current release proof.
+当前版本已经完成：
 
-## Target product loop
+- React + FastAPI 的 D3 浏览器纵向切片；
+- 本地 Workspace、受控运行、证据与产物关系；
+- 暂停/继续、失败后重试关系；
+- 需要授权的草稿导出与 Receipt；
+- Tauri Stage 1 静态 Windows 壳及受保护 CI。
 
-```text
-goal / inquiry
-→ research and evidence
-→ hypothesis and editable plan
-→ implementation and experiment
-→ comparison and counter-evidence
-→ user-approved decision and delivery
-→ cross-project reuse
-```
+Tauri Stage 1 只证明桌面壳能够安全加载本地前端资源。它没有启动 Python
+sidecar，也没有接管产品数据，更不是正式安装包。当前产品迁移状态仍为
+`false`。
 
-The first three project templates are:
+## 现在可以看到什么
 
-1. Algorithm Investigation
-2. Paper/Repo Reproduction
-3. Engineering Optimization
+| 入口 | 可以看到 | 定位 |
+|---|---|---|
+| D3 本地 Web 界面 | 当前 React 工作台、开发态研究旅程、运行状态、证据、产物和受控导出 | 当前新界面的主要观察入口 |
+| PySide6 桌面界面 | 旧版科研对象、算法演示和可视化 | 冻结的兼容与回滚入口，不再增加新功能 |
+| Tauri 静态壳 | Windows 桌面窗口中的本地 React 静态资源 | 技术验证，不具备真实后端工作流 |
 
-They share one Project/Plan/Run/Action/Event/PolicyGrant/Approval runtime. Capability growth is a
-derived view of real work, not a separate score-driven product loop.
+当前版本仍是开发基线，不是日常使用完成品。目前没有签名安装包、Tauri
+sidecar 生命周期、桌面原生目录选择、自动更新或旧数据产品迁移。
 
-## Target architecture
+## 推荐体验：D3 本地 Web 界面
 
-- React + TypeScript for the Cockpit and Research Studio
-- Python 3.12 + FastAPI for domain services, agents, scientific tools, and adapters
-- SQLite WAL as canonical metadata/event storage
-- content-addressed Artifact Store
-- Tauri 2/Rust as the Windows desktop shell only after a browser-based vertical
-  slice passes; local Web workspace is the fallback
-- adapters for Git/DVC, MLflow/SwanLab, Jupyter, Obsidian, parsers, model
-  providers, and execution backends
-
-The stable mission and engineering authority are the project kernel and active
-state above. The detailed user-facing rebuild specification is mirrored in
-[`obsidian_export/Nana_研究系统_vNext`](obsidian_export/Nana_研究系统_vNext/00_Nana_总览与导航.md).
-It covers product, version-history research, user journeys, UI, architecture,
-security, roadmap, migration, peer review, final audit, and the first
-implementation slice.
-
-## Current prototype
-
-The current code still uses:
-
-- Python 3.12（审计时 `.venv` 为 3.12.13）
-- PySide6 and Matplotlib
-- SQLite
-- PyInstaller
-- legacy research objects and algorithm visualizations
-
-Useful pure algorithm functions, tests, and verified integrations may be reused
-as artifacts or adapters. The old PySide6 UI and legacy database schema do not
-constrain the rebuild.
-
-### Run
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe main.py
-```
-
-### Run the D3 Web journey
-
-Build the browser assets once, then start the authenticated product launcher.
-The launcher asks for an existing, dedicated empty export directory, binds an
-OS-selected loopback port, opens the browser after readiness, and keeps the
-Bearer credential out of stdout and persistent browser storage.
+先构建前端，再启动本地认证启动器：
 
 ```powershell
 Set-Location .\nana_web
@@ -96,76 +44,64 @@ Set-Location ..
 .\.venv\Scripts\python.exe .\scripts\run_d3_dev_journey.py
 ```
 
-The launcher stores its default Workspace under the OS Nana user-data root
-(`%LOCALAPPDATA%\Nana` on Windows), never in the source checkout. At the
-prompt, select an existing empty dedicated local directory outside this
-repository; the launcher prints the recommended user-data export parent. The browser consumes a
-one-time URL fragment, holds the Bearer only in JavaScript memory, and uses an
-HttpOnly, same-site recovery cookie to obtain a fresh in-memory copy after a
-page refresh. Closing the launcher process ends that recovery session.
+启动器会使用系统分配的本地端口并打开浏览器。默认 Workspace 位于 Windows
+的 Nana 用户数据目录，不写入源码目录。导出时需要选择一个已经存在、专用且为空的
+本地目录。
 
-### Test
+## 旧版桌面入口
+
+旧版 PySide6 程序仍可运行，用于兼容、比较和回滚：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+该界面和旧 SQLite 结构已经冻结，不代表当前目标界面。
+
+## 测试
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-### Build the legacy Windows prototype
+## 旧版 Windows 构建
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
 ```
 
-The output is `dist\Nana\Nana.exe`. This build path is retained only until the
-Tauri product-migration and old-data recovery gates are complete. Generated
-packages are intentionally not retained in the repository working tree.
+输出位于 `dist\Nana\Nana.exe`。这是旧版兼容构建，不是 Tauri 正式发行版。
 
-### Start a new Nana development task
+## 开始一个 Nana 开发任务
 
-Do not scan the entire repository or Obsidian Vault. The root `AGENTS.md` and
-project skill require a bounded route:
+不要先扫描整个仓库或整个 Obsidian Vault。按照 `AGENTS.md` 和项目 skill 选择一个
+有边界的 route：
 
 ```powershell
 python .\scripts\nana_context.py check
-python .\scripts\nana_context.py bootstrap --route tauri-shell
+python .\scripts\nana_context.py bootstrap --route governance
 ```
 
-Available routes are in `config/context-routes.json`. Documentation and review
-retention rules are in `docs/DOCUMENT_RETENTION.md`.
+可用 route 位于 `config/context-routes.json`。
 
-## Repository map
+## 仓库结构
 
 ```text
 .
-├── main.py                         # frozen legacy entry point/migration fallback
-├── algorithms/                     # reusable algorithm assets
-├── db/                             # legacy SQLite implementation
-├── ui/                             # frozen PySide6 UI
-├── visualizer/                     # legacy visualizations
-├── nana_core/ai/                   # model collaboration adapter
-├── src-tauri/                      # currently authorized static shell spike
-├── tests/                          # executable contracts and regression proof
-├── docs/                           # kernel, active state, decisions, minimal evidence
-└── obsidian_export/
-    └── Nana_研究系统_vNext/          # authoritative rebuild specification
+├── main.py                 # 冻结的旧版桌面入口
+├── algorithms/             # 可复用算法资产
+├── db/                     # 旧版 SQLite 实现
+├── ui/                     # 冻结的 PySide6 界面
+├── visualizer/             # 旧版可视化
+├── nana_sidecar/           # 当前 Python 业务运行时
+├── nana_web/               # 当前 React 界面
+├── src-tauri/              # 已验证的静态 Windows 壳
+├── tests/                  # 可执行契约与回归测试
+└── docs/                   # 当前权威状态、决策与最小证据
 ```
 
-## Version interpretation
-
-- `v0.1.0`: historical algorithm-learning prototype
-- `v0.2.0-alpha`: current runnable research skeleton, now frozen as a legacy prototype
-- `v0.3.0-dev`: unified runtime vertical slice
-- `v0.3.0-alpha.1`: Algorithm Investigation
-- `v0.3.0-alpha.2`: Paper/Repo Reproduction
-- `v0.3.0-beta`: Engineering Optimization
-- `v0.3.0-rc`: migration, recovery, security, and Windows release hardening
-- `v0.3.0`: all three journeys and release gates pass
-- `v0.4.x`: cross-project reuse and CapabilityEvidence
-- `v0.5.x`: one user-confirmed domain pack
-
-Versions are acceptance boundaries, not feature-count or calendar promises.
-
-## License
+## 许可证
 
 [MIT](LICENSE)
