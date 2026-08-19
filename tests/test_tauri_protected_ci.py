@@ -69,10 +69,12 @@ class TauriProtectedCITests(unittest.TestCase):
             "npm@11.12.1",
             "1.97.1-x86_64-pc-windows-msvc",
             "cargo-audit --version 0.22.2 --locked",
+            "cargo audit --file src-tauri/Cargo.lock",
             "package-manager-cache: false",
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, self.workflow)
+        self.assertNotIn("cargo audit fetch", self.workflow)
 
     def test_owner_acceptance_does_not_authorize_product_migration(self) -> None:
         state = json.loads(ACTIVE_STATE.read_text(encoding="utf-8"))
