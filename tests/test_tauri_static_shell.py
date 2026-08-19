@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -113,6 +114,18 @@ class TauriStaticShellTests(unittest.TestCase):
         self.assertIn("cargoEvidenceMatches", gate)
         self.assertIn("Test-NoReparseTree", gate)
         self.assertIn("expectedTauriConfigSha256", gate)
+        normalized_config = (
+            (TAURI / "tauri.conf.json")
+            .read_text(encoding="utf-8")
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+        )
+        expected_config_hash = hashlib.sha256(
+            normalized_config.encode("utf-8")
+        ).hexdigest()
+        self.assertIn(expected_config_hash, gate)
+        self.assertIn("Get-NormalizedTextSha256", gate)
+        self.assertIn('.Replace("`r`n", "`n").Replace("`r", "`n")', gate)
         self.assertIn("expectedFrontendPackageSha256", gate)
         self.assertIn("frontendDist", gate)
         self.assertIn("NANA_TAURI_GATE_SHA256", gate)

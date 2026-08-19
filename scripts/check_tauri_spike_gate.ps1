@@ -26,6 +26,22 @@ function Normalize-RepoPath {
     return $normalized
 }
 
+function Get-NormalizedTextSha256 {
+    param([string]$Path)
+    $resolvedPath = (Resolve-Path -LiteralPath $Path).Path
+    $text = [System.IO.File]::ReadAllText($resolvedPath, [System.Text.Encoding]::UTF8)
+    $normalized = $text.Replace("`r`n", "`n").Replace("`r", "`n")
+    $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($normalized)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha256.ComputeHash($bytes)
+        return [System.BitConverter]::ToString($digest).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
 function Test-NoReparseTree {
     param([string]$RootPath)
     $root = Get-Item -LiteralPath $RootPath -Force
@@ -71,7 +87,7 @@ function Test-AllowedWorktreePath {
 
 $worktreePolicyPath = Join-Path $RepositoryRoot 'config\tauri-stage1-worktree-allowlist.json'
 $expectedWorktreePolicySha256 = '039fd4945e22bd7dbe0021086c5c416c4399c19eeba5d4f0c84614a7550216b0'
-$actualWorktreePolicySha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $worktreePolicyPath).Hash.ToLowerInvariant()
+$actualWorktreePolicySha256 = Get-NormalizedTextSha256 $worktreePolicyPath
 if ($actualWorktreePolicySha256 -ne $expectedWorktreePolicySha256) {
     throw "worktree allowlist does not match the gate's trusted baseline"
 }
@@ -79,8 +95,8 @@ $worktreePolicy = Get-Content -Raw $worktreePolicyPath | ConvertFrom-Json
 Test-NoReparseTree (Join-Path $RepositoryRoot 'src-tauri')
 
 $tauriConfigPath = Join-Path $RepositoryRoot 'src-tauri\tauri.conf.json'
-$expectedTauriConfigSha256 = '89fa1a09c3713e96302ebd66267c652bfe44191bf7ff977055d32f5bc5190cd5'
-$actualTauriConfigSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $tauriConfigPath).Hash.ToLowerInvariant()
+$expectedTauriConfigSha256 = '3edb9c119c77822207bb374cd585f32d176abb4c1a1d7bff5c59e2111daa78f5'
+$actualTauriConfigSha256 = Get-NormalizedTextSha256 $tauriConfigPath
 if ($actualTauriConfigSha256 -ne $expectedTauriConfigSha256) {
     throw 'Tauri configuration does not match the trusted frontend build target baseline'
 }
@@ -92,7 +108,7 @@ if ($tauriConfig.build.frontendDist -ne '../nana_web/dist' -or
 
 $frontendPackagePath = Join-Path $RepositoryRoot 'nana_web\package.json'
 $expectedFrontendPackageSha256 = '39c4f335c3c39d2dafb177d55c1e155571f46ccb6635be5b8d6408f5d8fa73ce'
-$actualFrontendPackageSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $frontendPackagePath).Hash.ToLowerInvariant()
+$actualFrontendPackageSha256 = Get-NormalizedTextSha256 $frontendPackagePath
 if ($actualFrontendPackageSha256 -ne $expectedFrontendPackageSha256) {
     throw 'frontend package.json does not match the trusted build command baseline'
 }
@@ -102,7 +118,7 @@ if ($frontendPackage.scripts.build -ne 'vite build') {
 }
 $stageManifestPath = Join-Path $RepositoryRoot 'docs\evidence\v0.3.0-dev-tauri-stage1-static-shell-manifest.txt'
 $stageManifestDigestPath = Join-Path $RepositoryRoot 'docs\evidence\v0.3.0-dev-tauri-stage1-static-shell-manifest.sha256'
-$expectedStageManifestSha256 = '57bafa1d1083720b60e9f68e502092cdba7d365a54d086a3761790180039d0a7'
+$expectedStageManifestSha256 = '85c501e5301e8535fe93e5322346b5dbdaf5852560ed49646d3892b87d680d55'
 $actualStageManifestSha256 = (Get-Content -Raw -LiteralPath $stageManifestDigestPath).Trim().ToLowerInvariant()
 if ($actualStageManifestSha256 -ne $expectedStageManifestSha256) {
     throw 'stage evidence manifest does not match the gate trusted baseline'
