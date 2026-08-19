@@ -1,0 +1,22 @@
+[package]
+name = "nana-tauri-shell"
+version = "0.3.0-dev"
+description = "Nana minimal Windows Tauri shell spike"
+authors = ["Nana contributors"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.97"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "nana_tauri_shell_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "=2.11.5", features = [] }
+url = "=2.5.7"

@@ -1,0 +1,65 @@
+{
+  "schema": "nana.tauri.windows_toolchain_evidence.v1",
+  "date": "2026-08-17",
+  "status": "PASS_FOR_MINIMAL_SPIKE_SCAFFOLD",
+  "official_prerequisites": "https://v2.tauri.app/start/prerequisites/",
+  "installers": {
+    "rustup_init": {
+      "source": "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
+      "sha256": "86478E53F769379D7F0EBFA7C9AA97CB76CA92233F79AA2CC0DBEE2EFAAC73C7"
+    },
+    "visual_studio_build_tools": {
+      "source": "https://aka.ms/vs/17/release/vs_BuildTools.exe",
+      "sha256": "15DF9D3B4C2B2EAF44704D5E938C895341B9CD8BA40A9A18610F8D18CBE01B53",
+      "authenticode_status": "Valid",
+      "signer": "Microsoft Corporation",
+      "installer_exit_code": 0,
+      "reboot_required": false
+    }
+  },
+  "verified_components": {
+    "rustup": "1.29.0",
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)",
+    "rust_target": "1.97.1-x86_64-pc-windows-msvc (default)",
+    "node": "v24.15.0",
+    "npm": "11.12.1",
+    "visual_studio_build_tools": "17.14.37531.7",
+    "msvc_cl": "19.44.35228",
+    "msvc_link": "14.44.35228.0",
+    "windows_sdk": "10.0.26100.0",
+    "webview2": "151.0.4129.86",
+    "tauri_cli": "2.11.4"
+  },
+  "execution_proof": {
+    "preflight": "PASS_10_OF_10",
+    "preflight_directly_executed_by_test": true,
+    "cargo_check": "PASS",
+    "cargo_build_msvc_link": "PASS",
+    "linked_probe_execution": "PASS_HELLO_WORLD",
+    "temporary_probe_cleanup": "COMPLETE",
+    "tauri_info_environment": "PASS_AFTER_CURRENT_PROCESS_PATH_REFRESH",
+    "tauri_cli_npm_audit": {
+      "status": "PASS_ZERO_VULNERABILITIES",
+      "command": "npm --prefix tools/tauri-spike audit --registry=https://registry.npmjs.org --json",
+      "registry": "https://registry.npmjs.org",
+      "exit_code": 0,
+      "vulnerabilities_total": 0
+    },
+    "complete_spike_gate": "PASS_LOCAL_10_OF_10_PLUS_OFFICIAL_AUDIT_ZERO",
+    "post_baseline_python_regression": "PASS_452_OF_452"
+  },
+  "baseline_anchor": {
+    "ref": "refs/tags/v0.3.0-dev-d3-final",
+    "commit": "2ad24de9bdc166b7c04bd1124bd7054c95c2ce63",
+    "parent": "278f3a4186d7d0f85f6caf715c2882d63c589fc6"
+  },
+  "boundary": {
+    "src_tauri_created": false,
+    "src_tauri_state_record_kind": "point_in_time_snapshot_not_presence_gate",
+    "product_code_authorized": false,
+    "tauri_dev_claimed": false,
+    "windows_package_claimed": false,
+    "reason": "This evidence closes host prerequisites and authorizes only the separately gated minimal scaffold. src-tauri may be absent before the scaffold commit or present afterward under the exact-root constraints; neither state authorizes product code."
+  }
+}

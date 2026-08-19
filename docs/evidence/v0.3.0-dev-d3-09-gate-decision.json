@@ -1,0 +1,77 @@
+{
+  "schema": "nana.d3.final_gate.v1",
+  "stage": "D3-09",
+  "version": "v0.3.0-dev-D3",
+  "date": "2026-08-17",
+  "governance": {
+    "mode": "product_owner_authorized_sol_only",
+    "decision_record": "docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json",
+    "claude_call_attempted_in_current_gate": true,
+    "claude_verdict_obtained": false,
+    "claude_required_in_current_gate": false,
+    "claude_waiver_temporary": true,
+    "historical_claude_results_relabelled": false
+  },
+  "status": "acceptance_complete_release_baseline_frozen",
+  "technical_slice_status": "sol_accept",
+  "d3_complete": true,
+  "release_baseline_frozen": true,
+  "baseline_binding": {
+    "result_commit": "278f3a4186d7d0f85f6caf715c2882d63c589fc6",
+    "relationship": "direct_parent_of_release_baseline_commit",
+    "evidence": "docs/evidence/v0.3.0-dev-d3-release-baseline-freeze-20260817.md"
+  },
+  "blocking_gate": {
+    "id": "observed_target_user_session",
+    "required": true,
+    "satisfied": true,
+    "resolution": "product_owner_evidence_exception",
+    "evidence": "docs/evidence/v0.3.0-dev-d3-observed-session-owner-attestation-20260817.json",
+    "measured_original_rubric_pass_claimed": false,
+    "reason": "The product owner attested that the 30-minute observation ended and explicitly accepted a D3-only evidence exception for the missing granular observer record."
+  },
+  "scope": {
+    "locked_execution": "trusted frozen python.unittest.locked fixture only",
+    "external_effect": "one-time controlled fixed-local public draft export only",
+    "remote_publish": false,
+    "hostile_code_sandbox_claim": false
+  },
+  "evidence": {
+    "snapshot_state": "current_refrozen",
+    "full_python": {
+      "total": 446,
+      "passed": 446,
+      "skipped": 0,
+      "status": "PASS"
+    },
+    "browser_release_matrix": {
+      "total": 27,
+      "passed": 27,
+      "retries": 0,
+      "status": "PASS"
+    },
+    "ten_consecutive_full_success": "PASS_10_OF_10_RETRIES_0",
+    "typescript_vitest_build": "PASS_67_VITEST_PLUS_PROJECTION_SELF_TEST",
+    "runtime_data_migration": "PASS_COPY_VERIFY_COMMIT_RECOVERABLE_ARCHIVE",
+    "release_package_audit": "PASS_212_ENTRIES_ZERO_FORBIDDEN",
+    "manifest": {
+      "path": "docs/evidence/v0.3.0-dev-d3-final-manifest.txt",
+      "digest_path": "docs/evidence/v0.3.0-dev-d3-final-manifest.sha256",
+      "record_kind": "current_frozen_release_baseline",
+      "current": true,
+      "bound_result_commit": "278f3a4186d7d0f85f6caf715c2882d63c589fc6"
+    }
+  },
+  "supersedes": [
+    {
+      "record": "this file before 2026-08-17",
+      "historical_status": "codex_only_accept",
+      "reason": "The old gate omitted the still-required observed usability gate and carried stale 412/25 counts."
+    },
+    {
+      "record": "2026-08-17 pre-attestation gate",
+      "historical_status": "acceptance_pending",
+      "reason": "The product owner later attested completion and authorized a D3-only evidence exception plus temporary Claude waiver."
+    }
+  ]
+}

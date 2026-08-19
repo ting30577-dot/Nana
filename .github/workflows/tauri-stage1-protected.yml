@@ -1,0 +1,109 @@
+name: Nana Tauri Stage 1 Protected Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nana-tauri-stage1-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tauri-stage1-protected:
+    name: Tauri Stage 1 protected gate
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      NANA_TAURI_GATE_SHA256: ${{ vars.NANA_TAURI_STAGE1_GATE_SHA256 }}
+    steps:
+      - name: Check out the candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 3.12.10 x64
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: 3.12.10
+          architecture: x64
+
+      - name: Verify the pinned Python runtime
+        shell: pwsh
+        run: |
+          python -c "import struct, sys; assert sys.version_info[:3] == (3, 12, 10); assert struct.calcsize('P') * 8 == 64"
+
+      - name: Scan release privacy
+        shell: pwsh
+        env:
+          NANA_RELEASE_PRIVACY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          $base = $env:NANA_RELEASE_PRIVACY_BASE
+          if ([string]::IsNullOrWhiteSpace($base) -or $base -match '^0+$') {
+            $base = 'HEAD~1'
+          }
+          python scripts/nana_context.py release-privacy-scan --base $base --head HEAD
+
+      - name: Set up Node 24.15.0
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24.15.0
+          package-manager-cache: false
+
+      - name: Pin npm and the project-local Tauri CLI
+        shell: pwsh
+        run: |
+          npm.cmd install --global npm@11.12.1 --ignore-scripts --no-audit --no-fund
+          npm.cmd ci --prefix tools/tauri-spike --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+
+      - name: Pin the Windows Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.97.1-x86_64-pc-windows-msvc --profile minimal --component rustfmt --component clippy
+          rustup default 1.97.1-x86_64-pc-windows-msvc
+
+      - name: Install and seed cargo-audit
+        shell: pwsh
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo audit --file src-tauri/Cargo.lock
+
+      - name: Verify the detached trust root
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NANA_TAURI_GATE_SHA256) -or
+              $env:NANA_TAURI_GATE_SHA256 -cnotmatch '^[0-9a-f]{64}$') {
+            throw 'NANA_TAURI_STAGE1_GATE_SHA256 repository variable is missing or invalid'
+          }
+
+      - name: Run the protected Stage 1 gate
+        shell: pwsh
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check_tauri_spike_gate.ps1 -RepositoryRoot $PWD
+
+      - name: Run focused Python contract tests
+        shell: pwsh
+        run: python -m unittest tests.test_tauri_spike_gate tests.test_tauri_static_shell tests.test_tauri_protected_ci
+
+      - name: Verify the frontend
+        working-directory: nana_web
+        shell: pwsh
+        run: |
+          npm.cmd run check
+          npm.cmd test
+          npm.cmd run build
+
+      - name: Verify the Rust shell
+        working-directory: src-tauri
+        shell: pwsh
+        run: |
+          cargo fmt --check
+          cargo clippy -- -D warnings
+          cargo test
+          cargo check
+          cargo build

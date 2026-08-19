@@ -1,0 +1,23 @@
+{
+  "schema": "nana.tauri.stage1_worktree_allowlist.v1",
+  "allowed_exact": [
+    "config/tauri-stage1-worktree-allowlist.json",
+    "docs/evidence/v0.3.0-dev-tauri-stage1-static-shell.json",
+    "docs/evidence/v0.3.0-dev-tauri-cargo-audit-20260817.json",
+    "docs/evidence/v0.3.0-dev-tauri-stage1-static-shell-manifest.txt",
+    "docs/evidence/v0.3.0-dev-tauri-stage1-static-shell-manifest.sha256",
+    "docs/evidence/v0.3.0-dev-tauri-spike-entry-manifest.sha256",
+    "docs/evidence/v0.3.0-dev-tauri-spike-entry-manifest.txt",
+    "docs/tauri_stage1_static_shell_20260817.md",
+    "nana_web/package-lock.json",
+    "nana_web/package.json",
+    "nana_web/src/main.tsx",
+    "scripts/check_tauri_cargo_audit.ps1",
+    "scripts/check_tauri_frontend_npm_audit.ps1",
+    "scripts/check_tauri_frontend_dist.py",
+    "scripts/refresh_evidence_manifest.py",
+    "tests/test_tauri_static_shell.py"
+  ],
+  "trusted_exact": ["scripts/check_tauri_spike_gate.ps1"],
+  "allowed_prefixes": ["src-tauri/"]
+}

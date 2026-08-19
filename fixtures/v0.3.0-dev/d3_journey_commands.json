@@ -1,0 +1,81 @@
+{
+  "fixture_version": 1,
+  "created_at": "2026-08-08T00:00:00Z",
+  "workspace": {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "data_root": "workspace",
+    "policy": {}
+  },
+  "commands": {
+    "project": "20000000-0000-4000-8000-000000000001",
+    "inquiry": "20000000-0000-4000-8000-000000000002",
+    "resource": "20000000-0000-4000-8000-000000000003",
+    "locator": "20000000-0000-4000-8000-000000000004",
+    "claim": "20000000-0000-4000-8000-000000000005",
+    "evidence": "20000000-0000-4000-8000-000000000006",
+    "claim_relation": "20000000-0000-4000-8000-000000000007",
+    "hypothesis": "20000000-0000-4000-8000-000000000008",
+    "plan": "20000000-0000-4000-8000-000000000009",
+    "finding": "20000000-0000-4000-8000-000000000010"
+  },
+  "project": {
+    "title": "Variable-length sliding-window boundary",
+    "data_class": "public"
+  },
+  "inquiry": {
+    "question": "Why does the variable-length sliding-window technique depend on non-negative input, and what monotonicity is lost when negative values are admitted?",
+    "acceptance": "The frozen public Resource resolves; the locked-test Plan is editable; a draft Finding remains traceable to valid Evidence or a terminal Run."
+  },
+  "resource": {
+    "descriptor_id": "dev.variable-window-monotonicity.v1",
+    "logical_ref": "fixtures/v0.3.0-dev/resources/variable-window-monotonicity.md",
+    "media_type": "text/markdown",
+    "data_class": "public",
+    "license": "CC0-1.0",
+    "content_hash": "sha256:437fbf2320eacc59e01adc16503f5297383551b77c2457b1a054bcf4b7e5fe4a",
+    "start_line": 6,
+    "end_line": 12,
+    "quote_hash": "sha256:b2a8bd097c6ea04f9439745767a77df876fc1e860aa3ad71ea158f6f93c8cfe5"
+  },
+  "claim": {
+    "statement": "For non-negative input, extending the right edge cannot decrease the window sum."
+  },
+  "evidence": {
+    "direction": "supports"
+  },
+  "hypothesis": {
+    "statement": "The existing variable-window test succeeds because the locked input preserves non-negative monotonicity.",
+    "falsification_criteria": "The frozen non-negative test fails or its observed window transitions contradict monotonicity."
+  },
+  "plan": {
+    "steps": [
+      {
+        "id": "step-locked-test",
+        "title": "Run the frozen non-negative variable-window test",
+        "capability_id": "python.unittest.locked",
+        "expected_artifacts": ["text/plain test result"],
+        "approval_required": false
+      }
+    ],
+    "policy": {
+      "test_id": "tests.test_sliding_window.VariableWindowTests.test_finds_shortest_matching_window",
+      "network": "denied"
+    },
+    "budget": {
+      "wall_clock_seconds": 60,
+      "max_actions": 1,
+      "max_concurrency": 1,
+      "max_model_calls": 0,
+      "max_model_tokens": 0,
+      "max_cost_micros": 0,
+      "max_retries": 0,
+      "max_output_bytes": 4096,
+      "max_artifact_bytes": 4096,
+      "max_download_bytes": 0
+    }
+  },
+  "finding": {
+    "statement": "The frozen provenance supports the non-negative monotonicity premise for the dev test.",
+    "confidence_basis": "The checked Resource span and its valid Evidence are deterministic; execution evidence remains D3-06."
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "schema": "nana.tauri.stage1_static_shell_evidence.v1",
+  "date": "2026-08-17",
+  "status": "PASS_FOR_MINIMAL_STATIC_SHELL_SPIKE",
+  "decision": "ACCEPT",
+  "product_migration_authorized": false,
+  "product_code_allowed": false,
+  "phase": "minimal_windows_shell_spike",
+  "source_root": "src-tauri",
+  "canonical_business_writer": "python_sidecar_only",
+  "frontend_dist": "nana_web/dist",
+  "sidecar_embedded": false,
+  "network_access": false,
+  "filesystem_business_access": false,
+  "custom_invoke_commands": false,
+  "installer_or_signing_claimed": false,
+  "entry_gate": "PASS",
+  "governance_baseline_commit": "41d0fef",
+  "local_revalidation": "PASS",
+  "protected_gate": "PENDING",
+  "tauri_build_no_bundle": "PASS",
+  "cargo": {
+    "fmt_check": "PASS",
+    "clippy_deny_warnings": "PASS",
+    "test": "PASS_1_OF_1",
+    "check_locked": "PASS",
+    "build_locked": "PASS"
+  },
+  "frontend": {
+    "typecheck": "PASS",
+    "vitest": "PASS_67_OF_67",
+    "projection_self_test": "PASS",
+    "vite_build": "PASS"
+  },
+  "python": {
+    "stage_focused": "PASS_12_OF_12",
+    "full_suite": "PASS_474_OF_474",
+    "known_warning": "ResourceWarning during interpreter shutdown in the frozen legacy UI stack; no test failure"
+  },
+  "npm_audit_official_registry": "PASS_0_VULNERABILITIES",
+  "frontend_npm_ci_lockfile": "PASS",
+  "frontend_npm_audit_official_registry": "PASS_0_VULNERABILITIES",
+  "rust_dependency_audit": {
+    "status": "PASS_0_VULNERABILITIES",
+    "tool": "cargo-audit 0.22.2",
+    "tool_installed": true,
+    "vulnerabilities": 0,
+    "reason": null
+  },
+  "frozen_authority_unchanged": true,
+  "release_allowlist_product_code_allowed": false,
+  "deferred_gates": [
+    "sidecar_embedding",
+    "bundle_installer",
+    "code_signing",
+    "updater",
+    "single_instance",
+    "native_file_picker",
+    "data_migration"
+  ]
+}

@@ -1,161 +1,170 @@
 # Nana
 
-Nana 是一款面向个人算法工程与研究成长的本地桌面应用。它以算法和方法为核心，借助 AI 帮助用户阅读论文与项目、核对证据、实现和验证方法，并把外部成果逐步转化为自己的能力。
+> **Product direction:** [`docs/PROJECT_KERNEL.md`](docs/PROJECT_KERNEL.md)
+> **Current execution state:** [`docs/ACTIVE_STATE.json`](docs/ACTIVE_STATE.json)
+> The accepted D3 baseline remains frozen in
+> [`docs/CURRENT_D3_AUTHORITY.md`](docs/CURRENT_D3_AUTHORITY.md).
 
-> 当前状态：`v0.2.0-alpha` — 新研究骨架成立，处于早期验证阶段
-> `v0.1.0` 是冻结的历史原型；旧 `v0.2` 方案从未发布并已取消。旧页面的存在不代表新产品继续认可它们。
+Nana is a Windows-first, local-first personal **Research & Engineering OS**. Its
+target is to turn a real research or engineering question into traceable
+evidence, reproducible runs, reusable artifacts, and a user-approved decision.
 
-## 核心目标
+> Current implementation: a frozen legacy `v0.2.0-alpha`, the accepted
+> `v0.3.0-dev` React/FastAPI D3 vertical slice, and a post-D3 Tauri Stage 1
+> static-shell spike awaiting worktree revalidation. Tauri product migration is
+> **not** authorized.
 
-Nana 的所有长期功能都应服务于五个动作：
+The present PySide6 application is still runnable and its tests are retained as
+a regression baseline. It is not the target UI or data architecture. New
+product work is frozen on the old Qt/CRUD flow. The dev slice now includes a
+typed browser journey, locked T2 fixture, controlled draft export and Receipt,
+Pause/Resume, failed-to-retry lineage, the Local Web lifecycle/security matrix,
+and current release proof.
 
-> 吸收 → 理解 → 验证 → 迁移 → 内化
-
-一次完整使用应围绕真实问题形成闭环：
-
-```text
-选择论文、项目或算法
-→ AI 中性整理并定位证据
-→ 理解关键方法与假设
-→ 最小实现、实验或反例
-→ 形成个人判断
-→ 沉淀为可复用的方法卡片
-```
-
-Nana 不是普通 PDF 管理器、通用 AI 聊天窗口，也不以自动替用户完成研究为目标。
-
-## 当前代码状态
-
-当前代码已经从早期算法学习原型迁移为 `v0.2.0-alpha` 研究骨架。旧刷题账本与旧算法演示页已经退出运行入口；Research Thread、Source、Claim、Evidence、Method、Experiment、Insight、遗留数据归档与方法实验室的最小结构已经落地。Alpha 只表示新骨架可以验证，不代表 AI 精读闭环或稳定版本已经完成。
-
-### 可复用基础
-
-- 算法状态生成与 PySide6 / Matplotlib 绘制已经分离；
-- 滑动窗口、双指针、前缀和、二分、单调栈等模式已有基础动画；
-- SQLite 本地持久化、测试和 Windows 打包链路已经可用；
-- 暖色浅色主题已经替换旧的深蓝深紫默认气质。
-
-### 明确退役的产品形态
-
-- 手工录入题号、难度、日期和标签的刷题账本；
-- 围绕完成数量、连续天数或模式计数构成的刷题统计；
-- 以模式树、示例代码、播放动画和关联题目为主循环的旧算法工作台；
-- 把 LeetCode 题目列表当作算法模块内容主体的设计。
-
-这些能力不是“先隐藏以后再说”，也不改名后继续沿用。刷题题目如果确实有研究价值，只能作为 `case` 类型的 Source 进入某个 Research Thread；用户留下的是假设、失败边界、测试证据和方法判断，而不是完成记录。
-
-旧算法页也不再作为新页面的骨架。可复用的是算法函数、执行轨迹、绘图画布、播放控制和测试能力；它们将作为“方法实验室”的底层工具，在研究线程需要实现、比较或构造反例时被调用。可视化是一种证据视图，不再是产品主循环。
-
-数据库默认保存在：
+## Target product loop
 
 ```text
-%LOCALAPPDATA%\Nana\nana.db
+goal / inquiry
+→ research and evidence
+→ hypothesis and editable plan
+→ implementation and experiment
+→ comparison and counter-evidence
+→ user-approved decision and delivery
+→ cross-project reuse
 ```
 
-## 尚未实现
+The first three project templates are:
 
-以下能力属于新开发线，不应被 README 暗示为已经完成：
+1. Algorithm Investigation
+2. Paper/Repo Reproduction
+3. Engineering Optimization
 
-- NanaAI 模型接入与本地 API Key 管理
-- 论文和项目的选择性导入
-- 原文证据定位
-- 方法卡片、实验和个人洞见
-- 领域包与 Research Lens
-- Web 客户端
+They share one Project/Plan/Run/Action/Event/PolicyGrant/Approval runtime. Capability growth is a
+derived view of real work, not a separate score-driven product loop.
 
-接下来的验证分两步，不能跳过第一步直接堆 AI 功能：
+## Target architecture
 
-1. 先用一个算法问题验证新的研究线程与方法实验室，完成一次无 AI 的“问题 → 方法 → 实现 → 测试/反例 → 判断”。
-2. 再让单篇论文或单个项目经过“选择性导入 → AI 中性精读 → 证据核对 → 最小实现/实验 → 方法卡片”。
+- React + TypeScript for the Cockpit and Research Studio
+- Python 3.12 + FastAPI for domain services, agents, scientific tools, and adapters
+- SQLite WAL as canonical metadata/event storage
+- content-addressed Artifact Store
+- Tauri 2/Rust as the Windows desktop shell only after a browser-based vertical
+  slice passes; local Web workspace is the fallback
+- adapters for Git/DVC, MLflow/SwanLab, Jupyter, Obsidian, parsers, model
+  providers, and execution backends
 
-## 平台策略
+The stable mission and engineering authority are the project kernel and active
+state above. The detailed user-facing rebuild specification is mirrored in
+[`obsidian_export/Nana_研究系统_vNext`](obsidian_export/Nana_研究系统_vNext/00_Nana_总览与导航.md).
+It covers product, version-history research, user journeys, UI, architecture,
+security, roadmap, migration, peer review, final audit, and the first
+implementation slice.
 
-Nana 采用桌面端优先：
+## Current prototype
 
-- 本地文件、代码、数据库和未来本地模型更适合桌面环境；
-- 当前第一使用者是项目作者本人，不为尚未出现的多人协作需求提前建设云平台；
-- 核心逻辑保持与界面分离，未来需要跨设备或协作时，再增加 Web 客户端。
+The current code still uses:
 
-网页版不是桌面版的前置步骤，也不属于当前阶段。
+- Python 3.12（审计时 `.venv` 为 3.12.13）
+- PySide6 and Matplotlib
+- SQLite
+- PyInstaller
+- legacy research objects and algorithm visualizations
 
-## 视觉原则
+Useful pure algorithm functions, tests, and verified integrations may be reused
+as artifacts or adapters. The old PySide6 UI and legacy database schema do not
+constrain the rebuild.
 
-Nana 默认采用温暖、浅色和适合长时间阅读的视觉语言：
-
-- 米白、浅棕、沙色和暖灰作为大面积底色；
-- 浅紫、鼠尾草绿、陶土色作为局部状态色；
-- 信息层级主要依靠排版、留白、边框和明度；
-- 深色模式可以以后增加，但深蓝、深紫不再作为默认产品气质。
-
-## 快速开始
-
-需要 Python 3.11 或更高版本。项目统一使用根目录中的 `.venv`。
+### Run
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe main.py
 ```
 
-## 测试
+### Run the D3 Web journey
+
+Build the browser assets once, then start the authenticated product launcher.
+The launcher asks for an existing, dedicated empty export directory, binds an
+OS-selected loopback port, opens the browser after readiness, and keeps the
+Bearer credential out of stdout and persistent browser storage.
+
+```powershell
+Set-Location .\nana_web
+npm.cmd ci
+npm.cmd run build
+Set-Location ..
+.\.venv\Scripts\python.exe .\scripts\run_d3_dev_journey.py
+```
+
+The launcher stores its default Workspace under the OS Nana user-data root
+(`%LOCALAPPDATA%\Nana` on Windows), never in the source checkout. At the
+prompt, select an existing empty dedicated local directory outside this
+repository; the launcher prints the recommended user-data export parent. The browser consumes a
+one-time URL fragment, holds the Bearer only in JavaScript memory, and uses an
+HttpOnly, same-site recovery cookie to obtain a fresh in-memory copy after a
+page refresh. Closing the launcher process ends that recovery session.
+
+### Test
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-当前测试仍覆盖遗留算法步骤、关键输入边界、SQLite 持久化、内存数据库和主要页面导航；涉及刷题账本的测试将在对应入口退役时一并删除或迁移。
-
-## Windows 打包
+### Build the legacy Windows prototype
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
 ```
 
-生成结果位于：
+The output is `dist\Nana\Nana.exe`. This build path is retained only until the
+Tauri product-migration and old-data recovery gates are complete. Generated
+packages are intentionally not retained in the repository working tree.
 
-```text
-dist\Nana\Nana.exe
+### Start a new Nana development task
+
+Do not scan the entire repository or Obsidian Vault. The root `AGENTS.md` and
+project skill require a bounded route:
+
+```powershell
+python .\scripts\nana_context.py check
+python .\scripts\nana_context.py bootstrap --route tauri-shell
 ```
 
-`ExecutionPolicy Bypass` 只作用于本次脚本进程，不修改系统的永久执行策略。
+Available routes are in `config/context-routes.json`. Documentation and review
+retention rules are in `docs/DOCUMENT_RETENTION.md`.
 
-## 项目结构
+## Repository map
 
 ```text
 .
-├── main.py
-├── algorithms/        # 与界面无关的算法步骤
-├── db/                # SQLite 持久化
-├── ui/                # PySide6 页面、导航与主题
-├── visualizer/        # Matplotlib 动画画布
-├── tests/
-├── docs/
-└── obsidian_export/   # 产品方向文档的工作区副本
+├── main.py                         # frozen legacy entry point/migration fallback
+├── algorithms/                     # reusable algorithm assets
+├── db/                             # legacy SQLite implementation
+├── ui/                             # frozen PySide6 UI
+├── visualizer/                     # legacy visualizations
+├── nana_core/ai/                   # model collaboration adapter
+├── src-tauri/                      # currently authorized static shell spike
+├── tests/                          # executable contracts and regression proof
+├── docs/                           # kernel, active state, decisions, minimal evidence
+└── obsidian_export/
+    └── Nana_研究系统_vNext/          # authoritative rebuild specification
 ```
 
-完整方向、边界和阶段划分参见 [项目全景文档](docs/project_overview.md)。
+## Version interpretation
 
-## 旧版本状态
+- `v0.1.0`: historical algorithm-learning prototype
+- `v0.2.0-alpha`: current runnable research skeleton, now frozen as a legacy prototype
+- `v0.3.0-dev`: unified runtime vertical slice
+- `v0.3.0-alpha.1`: Algorithm Investigation
+- `v0.3.0-alpha.2`: Paper/Repo Reproduction
+- `v0.3.0-beta`: Engineering Optimization
+- `v0.3.0-rc`: migration, recovery, security, and Windows release hardening
+- `v0.3.0`: all three journeys and release gates pass
+- `v0.4.x`: cross-project reuse and CapabilityEvidence
+- `v0.5.x`: one user-confirmed domain pack
 
-- `v0.1.0` 标签保留为冻结的历史原型，不属于新产品能力基线。
-- 旧 `v0.2` 方案未形成正式发布版，其功能定义取消；由于仓库已有 `v0.1.0` 历史标签，新的研究线重新使用尚未发布过的 `v0.2.0` 编号。
-- 原“v0.3 论文库、v0.4 ML 可视化、v0.5 知识图谱、v1.0 Web 接口”的固定路线不再有效。
-- `v0.2.0-dev` 迁移态已经结束；当前工作区进入重新定义后的 `v0.2.0-alpha`，不继承旧 `v0.2` 方案。
-
-## 版本划定
-
-从现在起，版本号只表示经过验证的能力边界，不继承旧方案的功能清单，也不把“代码暂时还能运行”算作版本成果。
-
-| 版本 | 状态 | 边界 |
-| --- | --- | --- |
-| `v0.2.0-dev` | 已结束的迁移态 | 允许遗留代码暂时存在；不发布、不把旧页面计入新产品范围。 |
-| `v0.2.0-alpha` | 当前：新骨架成立 | 刷题账本与旧算法工作台退出运行入口；建立 Research Thread、Source、Claim、Evidence、Method、Experiment、Insight 的最小数据与界面骨架、遗留数据安全归档和方法实验室；一个真实算法问题可以完成无 AI 的“问题 → 方法 → 实现 → 测试/反例 → 判断”闭环。 |
-| `v0.2.0-beta` | 首条 AI 闭环可用 | 单篇论文或单个项目可以完成选择性导入、AI 中性整理、证据定位与用户核对、用户修正、最小实现/实验和方法卡片。 |
-| `v0.2.0-rc` | 冻结候选版 | 不增加新对象，只修复闭环完整性、数据可靠性、隐私边界、打包和交互问题。 |
-| `v0.2.0` | 首个稳定研究版 | 第一条单资料研究闭环可以反复使用，产物可追溯、可修改、可再次进入实验。 |
-| `v0.3.0` | 方法复用版 | 支持跨来源比较相近方法，并让已有方法卡与实验在新问题中被复用；它与旧路线中的“论文库 v0.3”无关。 |
-
-Research Lens、领域包、模型专业化和 Web 不预先绑定版本号。Research Lens 在 `v0.2.x` 不做，稳定闭环之后也只有满足真实需求、来源边界和评测条件时才单独立项。刷题账本已永久退出后续正式路线；批量全文知识库、更多动画数量或旧功能完成度也不能作为里程碑。
+Versions are acceptance boundaries, not feature-count or calendar promises.
 
 ## License
 

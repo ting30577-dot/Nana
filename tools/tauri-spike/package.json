@@ -1,0 +1,13 @@
+{
+  "name": "nana-tauri-spike-toolchain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pinned repository-local CLI for the gated Nana Tauri spike.",
+  "scripts": {
+    "preflight:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ../../scripts/check_tauri_windows_prereqs.ps1",
+    "audit:official": "npm audit --registry=https://registry.npmjs.org --json"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

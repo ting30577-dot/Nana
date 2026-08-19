@@ -1,0 +1,38 @@
+{
+  "schema": "nana.usability_session.owner_attestation.v1",
+  "session_id": "20260816_30min_b",
+  "recorded_at": "2026-08-17",
+  "subject_role": "product_owner_and_target_user",
+  "duration": {
+    "required_minutes": 30,
+    "owner_attested_completed": true
+  },
+  "subjective_observation": {
+    "overall_experience": "poor",
+    "formal_entry_was_missing": true,
+    "current_functions_felt_low_value_relative_to_implementation_size": true,
+    "satisfaction_claimed": false
+  },
+  "original_rubric_evidence": {
+    "observer_record_available": false,
+    "clarifications_count": null,
+    "state_questions_correct_out_of_10": null,
+    "critical_misunderstanding_recorded": null,
+    "external_tool_bypass_recorded": null,
+    "measured_rubric_pass_claimed": false
+  },
+  "governance_resolution": {
+    "decision": "ACCEPT_BY_PRODUCT_OWNER_EVIDENCE_EXCEPTION",
+    "gate_satisfied": true,
+    "basis": "The product owner explicitly directed that the completed 30-minute observation gate be registered as complete.",
+    "scope": "v0.3.0-dev D3 only",
+    "does_not_reconstruct_missing_measurements": true,
+    "does_not_claim_subjective_satisfaction": true
+  },
+  "collaboration_governance": {
+    "current_reviewer": "sol_codex",
+    "claude_required_for_this_gate": false,
+    "waiver_basis": "The product owner temporarily waived Claude review until the relay is repaired.",
+    "future_claude_review_may_reopen_findings": true
+  }
+}

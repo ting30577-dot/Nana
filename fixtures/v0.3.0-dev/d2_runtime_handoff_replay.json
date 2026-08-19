@@ -1,0 +1,271 @@
+{
+  "schema_version": 2,
+  "handoff_version": "v0.3.0-dev-d2-runtime-handoff-3",
+  "fixture_id": "d2-runtime-handoff-replay-locked-unittest",
+  "seed": "nana-d2-runtime-handoff-2026-08-01",
+  "semantics": {
+    "effect_unknown": "known or possible side effects exist, but D2 cannot prove final effect; D3 must not render as success",
+    "openapi_runtime_merge": "D3 decision; D2 exposes no runtime mutation route",
+    "workspace_lock_preflight": "required before real mutation serving",
+    "running_cancel": "paused with cancel_requested means termination in progress, not resumable pause; stop and settle every running process before cancelled",
+    "orphaned_budget": "record Receipt and conservative usage, release the completed Action start reservation, quarantine the Run, and start no further Action",
+    "observed_effects": "trusted worker self-report is advisory audit evidence; runtime audit guard and Job enforcement do not depend on the report"
+  },
+  "workspace_lock_preflight": {
+    "required_before_real_mutation_serving": true,
+    "required_tests": [
+      "lock_acquired_before_writable_sqlite_open",
+      "ready_after_reconciliation",
+      "second_instance_fails_closed",
+      "lock_release_after_sqlite_close"
+    ]
+  },
+  "run": {
+    "id": "70000000-0000-0000-0000-000000000001",
+    "state": "succeeded"
+  },
+  "actions": [
+    {
+      "id": "70000000-0000-0000-0000-000000000002",
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "state": "succeeded",
+      "authorization_ref": "policy_grant:70000000-0000-0000-0000-000000000003"
+    }
+  ],
+  "action_authorizations": [
+    {
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "action_hash": "sha256:6f0c72359516ea49b2c3ec23244357c56765ff758816607f5adc067cb6b18e4e",
+      "registry_contract_digest": "sha256:18ccf020b55ea54abd26d2132db54313e2005788bd9c91306f0f2810ee735b38",
+      "authorization_source": "policy_grant",
+      "authorization_ref": "policy_grant:70000000-0000-0000-0000-000000000003",
+      "authorization_event_id": 2,
+      "material": {
+        "capability": {
+          "id": "python.unittest.locked",
+          "version": "1",
+          "digest": "sha256:7e5f9157ddeedf68f083fe952d4ad0a85e8130430bbfa701a5179624a71f09e6"
+        },
+        "args": {
+          "test_id": "tests.test_sliding_window.VariableWindowTests.test_finds_shortest_matching_window"
+        },
+        "args_hash": "sha256:822a33139d55480d38bfcaff4a47f5018d6931720fa25eb24ea29177b804e94c",
+        "data_class": "public",
+        "provider": null,
+        "requested_effects": {
+          "reads": ["project:source", "project:tests"],
+          "writes": [],
+          "network": [],
+          "processes": ["builtin:python.unittest.locked"]
+        },
+        "network_methods": [],
+        "budget": {
+          "wall_clock_seconds": 60,
+          "cpu_seconds": null,
+          "memory_bytes": null,
+          "gpu_seconds": null,
+          "max_actions": 1,
+          "max_concurrency": 1,
+          "max_model_calls": 0,
+          "max_model_tokens": 0,
+          "max_cost_micros": 0,
+          "max_retries": 0,
+          "max_output_bytes": 4096,
+          "max_artifact_bytes": 4096,
+          "max_download_bytes": 0,
+          "network_targets": [],
+          "read_roots": ["project:source", "project:tests"],
+          "write_roots": []
+        },
+        "risk_tier": "T2",
+        "reversible": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "aggregate_type": "run",
+      "aggregate_id": "70000000-0000-0000-0000-000000000001",
+      "aggregate_version": 1,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 1,
+      "action_id": null,
+      "type": "run.started",
+      "payload": {
+        "run_id": "70000000-0000-0000-0000-000000000001",
+        "state": "running"
+      }
+    },
+    {
+      "id": 2,
+      "aggregate_type": "action",
+      "aggregate_id": "70000000-0000-0000-0000-000000000002",
+      "aggregate_version": 1,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 2,
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "type": "action.authorized",
+      "payload": {
+        "action_id": "70000000-0000-0000-0000-000000000002",
+        "state": "authorized",
+        "authorization_source": "policy_grant",
+        "authorization_ref": "policy_grant:70000000-0000-0000-0000-000000000003"
+      }
+    },
+    {
+      "id": 3,
+      "aggregate_type": "budget",
+      "aggregate_id": "70000000-0000-0000-0000-000000000001",
+      "aggregate_version": 1,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 3,
+      "action_id": null,
+      "type": "budget.updated",
+      "payload": {
+        "reason": "action_start_reserved",
+        "sequence": 1
+      }
+    },
+    {
+      "id": 4,
+      "aggregate_type": "action",
+      "aggregate_id": "70000000-0000-0000-0000-000000000002",
+      "aggregate_version": 2,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 4,
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "type": "action.started",
+      "payload": {
+        "action_id": "70000000-0000-0000-0000-000000000002",
+        "state": "running"
+      }
+    },
+    {
+      "id": 5,
+      "aggregate_type": "budget",
+      "aggregate_id": "70000000-0000-0000-0000-000000000001",
+      "aggregate_version": 2,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 5,
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "type": "budget.updated",
+      "payload": {
+        "reason": "action_usage_recorded",
+        "sequence": 2
+      }
+    },
+    {
+      "id": 6,
+      "aggregate_type": "action",
+      "aggregate_id": "70000000-0000-0000-0000-000000000002",
+      "aggregate_version": 3,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 6,
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "type": "action.completed",
+      "payload": {
+        "action_id": "70000000-0000-0000-0000-000000000002",
+        "state": "succeeded",
+        "result": "succeeded",
+        "receipt_id": "70000000-0000-0000-0000-000000000004"
+      }
+    },
+    {
+      "id": 7,
+      "aggregate_type": "artifact",
+      "aggregate_id": "70000000-0000-0000-0000-000000000005",
+      "aggregate_version": 1,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 7,
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "type": "artifact.committed",
+      "payload": {
+        "artifact_id": "70000000-0000-0000-0000-000000000005",
+        "state": "available"
+      }
+    },
+    {
+      "id": 8,
+      "aggregate_type": "artifact",
+      "aggregate_id": "70000000-0000-0000-0000-000000000006",
+      "aggregate_version": 1,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 8,
+      "action_id": null,
+      "type": "artifact.reconciled",
+      "payload": {
+        "artifact_id": "70000000-0000-0000-0000-000000000006",
+        "state": "available",
+        "reason": "recovered_existing_blob"
+      }
+    },
+    {
+      "id": 9,
+      "aggregate_type": "run",
+      "aggregate_id": "70000000-0000-0000-0000-000000000001",
+      "aggregate_version": 2,
+      "run_id": "70000000-0000-0000-0000-000000000001",
+      "run_seq": 9,
+      "action_id": null,
+      "type": "run.succeeded",
+      "payload": {
+        "run_id": "70000000-0000-0000-0000-000000000001",
+        "state": "succeeded"
+      }
+    }
+  ],
+  "outbox_event_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "receipts": [
+    {
+      "id": "70000000-0000-0000-0000-000000000004",
+      "action_id": "70000000-0000-0000-0000-000000000002",
+      "authorization_source": "policy_grant",
+      "authorization_ref": "policy_grant:70000000-0000-0000-0000-000000000003",
+      "authorized_effects": {
+        "reads": ["project:source", "project:tests"],
+        "writes": [],
+        "network": [],
+        "processes": ["builtin:python.unittest.locked"]
+      },
+      "actual_effects": {
+        "reads": ["project:source", "project:tests"],
+        "writes": [],
+        "network": [],
+        "processes": ["builtin:python.unittest.locked"]
+      },
+      "effect_violation": false,
+      "result": "succeeded",
+      "resource_usage": {
+        "wall_clock_ms": 123,
+        "output_bytes": 0,
+        "artifact_bytes": 0,
+        "model_tokens": 0,
+        "cost_micros": 0
+      }
+    }
+  ],
+  "artifact_projection": {
+    "artifact.committed:available": "available",
+    "artifact.reconciled:available": "available"
+  },
+  "command_idempotency": {
+    "same_command_id_same_hash": "return_stored_result_without_side_effect",
+    "same_command_id_different_hash": "conflict",
+    "rejected_replay": "return_bound_error_without_reexecution"
+  },
+  "structured_errors": [
+    "E_CAPABILITY_UNREGISTERED",
+    "E_POLICY_GRANT_DENIED",
+    "E_APPROVAL_DENIED",
+    "E_ACTION_NOT_AUTHORIZED",
+    "E_ACTION_CANCEL_RACE",
+    "E_RUN_BUDGET_INVALID",
+    "E_RUN_CONCURRENCY_LIMIT",
+    "E_ACTION_AUTHORIZATION_MISSING",
+    "E_ACTION_AUTHORIZATION_INVALID",
+    "E_ACTION_AUTHORIZATION_MISMATCH",
+    "E_ARGS_ARTIFACT_SIZE",
+    "E_ARGS_ARTIFACT_BUDGET"
+  ]
+}
