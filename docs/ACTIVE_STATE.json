@@ -1,6 +1,6 @@
 {
   "schema": "nana.active_state.v1",
-  "updated_on": "2026-08-18",
+  "updated_on": "2026-08-19",
   "product_version": "v0.3.0-dev",
   "stable_baseline": {
     "stage": "D3",
@@ -11,9 +11,11 @@
   "active_product_stage": {
     "id": "post-d3-tauri-stage-1",
     "name": "minimal static Windows shell spike",
-    "status": "product_owner_accepted_protected_ci_pending",
+    "status": "protected_ci_complete_merge_approval_pending",
     "product_owner_decision": "accept_static_shell_without_product_migration",
     "product_owner_accepted_on": "2026-08-18",
+    "protected_ci_completed_on": "2026-08-19",
+    "protected_ci_evidence": "github-actions-run-32226061240",
     "product_migration_authorized": false,
     "contract": "docs/tauri_stage1_static_shell_20260817.md",
     "trust_boundary": "docs/tauri_trust_boundary_contract.md",
@@ -55,12 +57,11 @@
     }
   },
   "next_gate": {
-    "id": "tauri-stage-1-protected-ci-activation",
+    "id": "tauri-stage-1-main-merge",
     "entry_conditions": [
-      "the Stage-1 protected workflow is committed and pushed",
-      "the GitHub repository variable NANA_TAURI_STAGE1_GATE_SHA256 equals the independently reviewed gate-script SHA-256",
-      "the Tauri Stage 1 protected gate is required for main",
-      "the protected job passes from a clean GitHub-hosted Windows checkout"
+      "PR #2 retains a successful required Tauri Stage 1 protected gate on its final head",
+      "PR #2 receives the independent approval required by the existing main branch protection, or the product owner separately authorizes the configured administrator bypass",
+      "the accepted Stage-1 candidate is merged to main without authorizing product migration"
     ],
     "forbidden_claims": [
       "Tauri product migration is authorized",

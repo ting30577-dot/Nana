@@ -85,8 +85,11 @@ class TauriProtectedCITests(unittest.TestCase):
         )
         self.assertFalse(active["product_migration_authorized"])
         self.assertEqual(
+            active["status"], "protected_ci_complete_merge_approval_pending"
+        )
+        self.assertEqual(
             state["next_gate"]["id"],
-            "tauri-stage-1-protected-ci-activation",
+            "tauri-stage-1-main-merge",
         )
 
 
