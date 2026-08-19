@@ -174,6 +174,33 @@ class NanaContextTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("$nana-project-workflow", metadata)
 
+    def test_readme_describes_only_the_current_version(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("`v0.3.0-dev`", readme)
+        self.assertIn("当前版本仍是开发基线", readme)
+        for future_marker in (
+            "v0.3.0-alpha.1",
+            "v0.3.0-alpha.2",
+            "v0.3.0-beta",
+            "v0.3.0-rc",
+            "v0.4.x",
+            "v0.5.x",
+            "Target product loop",
+            "Target architecture",
+        ):
+            with self.subTest(future_marker=future_marker):
+                self.assertNotIn(future_marker, readme)
+
+    def test_product_owner_communication_contract_is_persistent(self) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        skill = (
+            ROOT / ".agents" / "skills" / "nana-project-workflow" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("默认使用中文回复", agents)
+        self.assertIn("README.md` 只解释当前仓库版本", agents)
+        self.assertIn("Respond in Chinese", skill)
+        self.assertIn("Keep handoffs short", skill)
+
     def test_cleanup_apply_requires_explicit_confirmation(self) -> None:
         with self.assertRaises(nana_context.GovernanceError):
             nana_context.apply_cleanup("")

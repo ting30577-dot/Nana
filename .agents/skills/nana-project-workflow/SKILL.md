@@ -36,6 +36,19 @@ Use `python scripts/nana_context.py review-level --paths <changed paths>` as the
 default classifier. Read `references/review-and-retention.md` for review,
 external-model collaboration, documentation, cleanup, or legacy retirement.
 
+## Communicate with the product owner
+
+- Respond in Chinese unless the product owner explicitly requests another
+  language.
+- Lead with visible interface behavior, usable functions, current limitations,
+  and the next user decision. Treat code and architecture as supporting
+  evidence rather than the outcome.
+- Keep `README.md` limited to the current repository version, current entry
+  points, and implemented behavior. Keep future roadmaps in the kernel, active
+  state, and Obsidian design view.
+- Keep handoffs short. A new task should recover context from this skill, the
+  two single sources of truth, and one route instead of receiving a transcript.
+
 ## Execute
 
 1. Make the smallest coherent change that advances the selected user journey or
